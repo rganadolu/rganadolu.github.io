@@ -1,6 +1,6 @@
 /* Rational Game Agents (RGA) */
 
-var Sprite = function(image, width, height, center_x = "center", center_y = "center", frameNumber = 1, animationSpeed = 100) {
+var Sprite = function(image, width, height, center_x = "center", center_y = "center", frame_number = 1, animation_speed = 100) {
 
 	if(center_x == "center") center_x = width/2;
 	if(center_y == "center") center_y = height/2;
@@ -13,21 +13,21 @@ var Sprite = function(image, width, height, center_x = "center", center_y = "cen
 	this.center_y = center_y;
 
 	/* animation properties */
-	this.frameNumber = frameNumber;
-	this.animationSpeed = animationSpeed; // [0-100]
+	this.frame_number = frame_number;
+	this.animation_speed = animation_speed; // [0-100]
 	this.start_x = 0; // where to start clipping the image for the current frame
-	this.currentFrame = 0;
-	this.frameCompleteness = 0;
+	this.current_frame = 0;
+	this.frame_completeness = 0;
 }
 
 Sprite.prototype = {
-	updateFrame: function(){
-		if(this.frameNumber > 1 && this.animationSpeed > 0){
-			this.frameCompleteness += this.animationSpeed;
-			if( this.frameCompleteness >= 100){
-				this.frameCompleteness = 0;
-				this.currentFrame = (this.currentFrame + 1) % this.frameNumber;
-				this.start_x = (this.start_x + this.width) % (this.width*this.frameNumber); 		
+	update_frame: function(){
+		if(this.frame_number > 1 && this.animation_speed > 0){
+			this.frame_completeness += this.animation_speed;
+			if( this.frame_completeness >= 100){
+				this.frame_completeness = 0;
+				this.current_frame = (this.current_frame + 1) % this.frame_number;
+				this.start_x = (this.start_x + this.width) % (this.width*this.frame_number); 		
 			}
 		}
 		return this.start_x;
@@ -36,17 +36,26 @@ Sprite.prototype = {
 	  	context.save();
 	  	context.translate(draw_x, draw_y);
 	  	context.rotate(angle);
-	  	context.drawImage(this.image, this.updateFrame(), 0, this.width, this.height, -this.center_x, -this.center_y, this.width, this.height);
+	  	context.drawImage(this.image, this.update_frame(), 0, this.width, this.height, -this.center_x, -this.center_y, this.width, this.height);
 	  	context.restore();
   	}
 }
 
-var Player = function(sprite, x = 0, y = 0, angle = 0){
+var GameObject = function(sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 4){
 	/* object properties */
-	this.sprite = sprite; this.x = x; this.y = y; this.angle = angle; this.vx = 0; this.vy = 0; this.speed = 4;
+	this.sprite = sprite;
+	this.x = x;
+	this.y = y;
+	this.prev_x = x;
+	this.prev_y = y;
+	this.angle  = angle;
+	this.speed  = speed;
+	this.vx = 0;
+	this.vy = 0; 
+	this.radius = radius;
 }
 
-Player.prototype = {
+GameObject.prototype = {
 	updateSprite: function(context){
 		this.sprite.drawSprite(context, this.x, this.y, -this.angle * Math.PI / 180);
 	},
@@ -54,6 +63,8 @@ Player.prototype = {
 		this.angle %= 360;
 		var _angle = -this.angle * Math.PI / 180; // clockwise radian angle
 		var newvx = Math.cos(_angle) * this.speed, newvy = Math.sin(_angle) * this.speed;
+		this.prev_x = this.x;
+		this.prev_y = this.y;
 		this.x += newvx; 
 		this.y += newvy;
 	}
@@ -66,11 +77,7 @@ var GameButton = function(sprite, rectangle){
 GameButton.prototype = {
 	isClicked: function(bool, x1, y1){
 		var clicked = bool && this.rectangle.pointCheck(x1, y1);
-		if(clicked){
-			this.choice = 1; // clicked, choose the second sprite
-		}else{
-			this.choice = 0; // not clicked, choose the first sprite
-		}
+		this.choice = clicked == true ? 1 : 0;
 		return clicked;
 	},
 	updateSprite: function(context){
@@ -111,7 +118,7 @@ function getHorizontalAngle(angle){
 	}else if(angle <= 180){
 		return 180 - angle;
 	}else if(angle <= 270){
-		return -(angle - 180);
+		return -angle + 180;
 	}else{
 		return 360 - angle;
 	}
@@ -121,11 +128,11 @@ function getVerticalAngle(angle){
 	if(angle <= 90){
 		return 90 - angle;
 	}else if(angle <= 180){
-		return -(angle - 90);
+		return -angle + 90;
 	}else if(angle <= 270){
 		return 270 - angle;
 	}else{
-		return -(angle - 270);
+		return -angle + 270;
 	}
 }
 
