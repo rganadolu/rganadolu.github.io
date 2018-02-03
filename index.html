@@ -340,10 +340,9 @@
 					context.fillText(version, 20, 30);
 					context.fillText(mouseClick + " at x: " + Math.round(mouse_x) + " y: " + Math.round(mouse_y), 20, 60); 
 
-					var isFullscreen = ((window.fullScreen) || (window.innerWidth == screen.width && window.innerHeight == screen.height));
+					var isFullscreen = (screen.availHeight || screen.height-30) <= window.innerHeight;
 
-					context.fillText("fullscreen: " + isFullscreen, 20, 120);
-					
+					context.fillText("fullscreen: " + isFullscreen, 20, 120);			
 
 					//drawCircle(context, 0.5, objects[2].x, objects[2].y, objects[2].radius, "blue", "black", 2);
 					
