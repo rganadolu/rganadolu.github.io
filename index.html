@@ -39,7 +39,7 @@
 			/* global variables */
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.2 debug mode"+ " - mobile: " + isMobile;
+			var version = "RGA v0.3.2.1 debug mode"+ " - mobile: " + isMobile;
 			var inMenu = true;
 
 			/* global game variables */
@@ -87,10 +87,7 @@
 						if(keyboardControl == false){
 							updateMouse(event);
 							mouseClick = true;
-							if(inMenu){
-								requestFullScreen(document.body);
-								inMenu = false;
-							}
+							//if(inMenu) requestFullScreen(document.body);
 						}
 					});
 
@@ -129,10 +126,7 @@
 
 				canvas.addEventListener('touchstart',
 					function(event) {
-						if(inMenu){
-							requestFullScreen(document.body);
-							inMenu = false;
-						}
+						if(inMenu) requestFullScreen(document.body);
 					    mouseClick = true;
 					    var newTouch = event.changedTouches[0];
 					    touchess = event.touches;
@@ -218,7 +212,7 @@
 
 			/* GAME LOGIC BEGINS HERE */
 
-			function start(){
+			function start() {
 				document.documentElement.style.overflow = "hidden"; // disable scrollbar
     			document.body.scroll = "no"; // disable scrollbar for ie browsers
 				resize();
@@ -237,18 +231,21 @@
 								
 			function loop_welcome(){
 
+				request_id = requestAnimationFrame(loop_welcome);
+
 				context.fillStyle = "#4E5E7A";
 				context.fillRect(0, 0, canvas.width, canvas.height);
 
 				objects[0].drawSprite(context, canvas.width/2, canvas.height/2);
 				objects[1].updateSprite(context);
 
-				if(objects[1].isClicked(mouseClick, mouse_x, mouse_y)){
-					cancelAnimationFrame(request_id);
-					load_game1(); 
+				if(window.innerHeight < window.innerWidth){
+					if(objects[1].isClicked(mouseClick, mouse_x, mouse_y)){
+						cancelAnimationFrame(request_id);
+						load_game1(); 
+						inMenu = false;
+					}
 				}
-
-				request_id = requestAnimationFrame(loop_welcome);
 			}
 
 			function load_game1(){
@@ -276,6 +273,8 @@
 			}
 
 			function loop_game1(){
+
+				request_id = requestAnimationFrame(loop_game1);
 
 				context.fillStyle = "#4E5E7A";
 				context.fillRect(0, 0, canvas.width, canvas.height);
@@ -341,9 +340,12 @@
 					context.fillText(version, 20, 30);
 					context.fillText(mouseClick + " at x: " + Math.round(mouse_x) + " y: " + Math.round(mouse_y), 20, 60); 
 
-					context.fillText(keys, 20, 90); 
+					var isFullscreen = ((window.fullScreen) || (window.innerWidth == screen.width && window.innerHeight == screen.height));
 
-					drawCircle(context, 0.5, objects[2].x, objects[2].y, objects[2].radius, "blue", "black", 2);
+					context.fillText("fullscreen: " + isFullscreen, 20, 120);
+					
+
+					//drawCircle(context, 0.5, objects[2].x, objects[2].y, objects[2].radius, "blue", "black", 2);
 					
 					if(isMobile){
 						context.fillText("following: " + id, canvas.width-200, 30);
@@ -352,11 +354,11 @@
 								context.fillText(touchess[i].identifier, canvas.width-300, 30 + i*30);
 							}
 						}
+					}else{
+						context.fillText(keys, 20, 90); 
 					}
 
 				} // debug mode end
-
-				request_id = requestAnimationFrame(loop_game1);
 
 			} // loop_game1 end
 
