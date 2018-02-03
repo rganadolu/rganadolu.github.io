@@ -39,7 +39,7 @@
 			/* global variables */
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.2.1 debug mode"+ " - mobile: " + isMobile;
+			var version = "RGA v0.3.2.2 debug mode"+ " - mobile: " + isMobile;
 			var inMenu = true;
 
 			/* global game variables */
@@ -126,7 +126,6 @@
 
 				canvas.addEventListener('touchstart',
 					function(event) {
-						if(inMenu) requestFullScreen(document.body);
 					    mouseClick = true;
 					    var newTouch = event.changedTouches[0];
 					    touchess = event.touches;
@@ -143,6 +142,7 @@
 
 				canvas.addEventListener('touchend', 
 					function(event) { 
+						if(inMenu) requestFullScreen(document.body);
 						var endedTouch = event.changedTouches[0];
 						var leftTouches = event.touches;
 						touchess = event.touches;
@@ -229,7 +229,7 @@
 				loop_welcome();
 			}
 								
-			function loop_welcome(){
+			function loop_welcome() {
 
 				request_id = requestAnimationFrame(loop_welcome);
 
