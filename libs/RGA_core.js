@@ -67,6 +67,10 @@ GameObject.prototype = {
 		this.prev_y = this.y;
 		this.x += newvx; 
 		this.y += newvy;
+	},
+	jumpPrevious: function(){
+		this.x = this.prev_x; 
+		this.y = this.prev_y;
 	}
 }
 
@@ -105,6 +109,14 @@ function drawCircle(context, alpha, x, y, radius, color1, color2, width){
 	context.lineWidth = width;
 	context.strokeStyle = color2;
 	context.stroke();
+	context.restore();
+}
+
+function writeText(context, string, x, y, color = "white" , font = "18px Verdana"){
+	context.save();
+	context.fillStyle = color;
+	context.font = font;
+	context.fillText(string, x, y);
 	context.restore();
 }
 
