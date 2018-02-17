@@ -41,7 +41,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.6.1 - debug: "+ debugMode + " - mobile: " + isMobile;
+			var version = "RGA v0.3.6.2 - debug: "+ debugMode + " - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -203,15 +203,17 @@
 			var img_empty 	   = loadImage("assets/empty.png")
 			var img_ship 	   = loadImage("assets/gemi.png");
 			var img_asteroid   = loadImage("assets/asteroid2.png");
+			var img_explosion  = loadImage("assets/explosion.png");
 			var img_landscape  = loadImage("assets/landscape.png");
 			var img_btn_left   = loadImage("assets/button_left.png");
 			var img_btn_right  = loadImage("assets/button_right.png");
 			var img_btn_left2  = loadImage("assets/button_left2.png");
 			var img_btn_right2 = loadImage("assets/button_right2.png");
 
-			var game_objects = [];
-			var game_buttons = [];
+			var game_objects;
+			var game_buttons;
 			var collisions;
+			var animations;
 
 			/* GAME LOGIC BEGINS HERE */
 
@@ -223,8 +225,8 @@
 			}
 
 			function load_welcome(){
-				game_buttons = []; game_objects = [];
-				game_buttons.push(new Sprite(img_landscape, 360, 300, "center", "center", 1));
+				game_buttons = []; game_objects = []; animations = [];
+				animations.push(new Animation(new Sprite(img_landscape, 360, 300, "center", "center", 1), canvas.width/2, canvas.height/2));
 				game_buttons.push(
 					new GameButton(
 						[new Sprite(img_empty, 1, 1, 0, 0), new Sprite(img_empty, 1, 1, 0, 0)],
@@ -239,11 +241,11 @@
 				context.fillStyle = "#4E5E7A";
 				context.fillRect(0, 0, canvas.width, canvas.height);
 
-				game_buttons[0].draw_sprite(context, canvas.width/2, canvas.height/2);
-				game_buttons[1].update_sprite(context);	
+				animations[0].update_sprite(context);
+				game_buttons[0].update_sprite(context);	
 
 				if(window.innerHeight < window.innerWidth){
-					if(game_buttons[1].is_clicked(mouseClick, mouse_point)){
+					if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
 						cancelAnimationFrame(request_id);
 						load_game1(); 
 					}
@@ -252,8 +254,8 @@
 
 			function load_game1(){
 
-				game_buttons = []; game_objects = [];
-				collisions = new collision_area(256, 144, game_area);
+				game_buttons = []; game_objects = []; animations = [];
+				collisions = new CollisionArea(128, 144, game_area);
 
 				game_buttons.push(new GameButton(
 					[new Sprite(img_btn_left, 160, 160, 0, 0), new Sprite(img_btn_left2, 160, 160, 0, 0)], 
@@ -266,12 +268,14 @@
 				); // right button
 
 				game_objects.push(
-					new GameObject(new Sprite(img_ship, 90, 63, "center", "center", 4, 35), canvas.width / 2, canvas.height / 2, 90, 25, 4)
+					new GameObject("spacheship", new Sprite(img_ship, 90, 63, "center", "center", 4, 35),
+					canvas.width / 2, canvas.height / 2, 90, 25, 4)
 				); // spaceship
 
-				for(i=0;i<1000;i++){
+				for(i=0;i<20;i++){
 					game_objects.push(
-						new GameObject(new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0), randomInt(100,1180), randomInt(100,620) , randomInt(0,359), 32, 2)
+						new GameObject("asteroid", new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0),
+						randomInt(100,1180), randomInt(100,620) , randomInt(0,359), 32, randomInt(1,3))
 					); // test asteroids
 				}
 				
@@ -296,10 +300,24 @@
 
 				while (--i >= 0) {
 					game_buttons[i].update_sprite(context);
-				}		
+				}
+
+				i = animations.length;
+
+				while (--i >= 0) {
+					animations[i].update_sprite(context);
+				}			
+
+				i = animations.length;
+
+				while (--i >= 0) {
+					if(animations[i].sprite.finished == true) animations.splice(i);
+				}	
 
 				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
 					game_objects[0].angle += 5;
+					if(animations.length<100)
+					animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 30, false), randomInt(0,1280),randomInt(0,720)));
 				} // left button is clicked
 
 				if(game_buttons[1].is_clicked(mouseClick, mouse_point)){

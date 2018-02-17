@@ -1,6 +1,20 @@
 /* Rational Game Agents (RGA) */
 
-var Sprite = function(image, width, height, center_x = "center", center_y = "center", frame_number = 1, animation_speed = 100) {
+var Point = function(x, y){
+	this.x = x; this.y = y;
+}
+
+var Rectangle = function(x, y, width, height){
+	this.x = x; this.y = y; this.width = width; this.height = height;
+}
+
+Rectangle.prototype = {
+	point_check: function(p){
+		return ((p.x >= this.x) && (p.x <= this.x + this.width) && (p.y >= this.y) && (p.y <= this.y + this.height));
+	}
+}
+
+var Sprite = function(image, width, height, center_x = "center", center_y = "center", frame_number = 1, animation_speed = 100, loop) {
 
 	if(center_x == "center") center_x = width/2;
 	if(center_y == "center") center_y = height/2;
@@ -18,6 +32,10 @@ var Sprite = function(image, width, height, center_x = "center", center_y = "cen
 	this.start_x = 0; // where to start clipping the image for the current frame
 	this.current_frame = 0;
 	this.frame_completeness = 0;
+	this.loop_completeness = 1;
+	this.loop = loop;
+	this.finished = false;
+				//if(this.loop == false) this.finished = true;
 }
 
 Sprite.prototype = {
@@ -27,7 +45,12 @@ Sprite.prototype = {
 			if( this.frame_completeness >= 100){
 				this.frame_completeness = 0;
 				this.current_frame = (this.current_frame + 1) % this.frame_number;
-				this.start_x = (this.start_x + this.width) % (this.width*this.frame_number); 		
+				this.start_x = (this.start_x + this.width) % (this.width*this.frame_number); 	
+				if(this.loop == false){
+					this.loop_completeness++;
+					if(this.loop_completeness >= this.frame_number)
+			    		this.finished = true;
+				}
 			}
 		}
 		return this.start_x;
@@ -41,7 +64,35 @@ Sprite.prototype = {
   	}
 }
 
-var GameObject = function(sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 4){
+var Animation = function(sprite, x, y, angle = 0){
+	this.sprite = sprite;
+	this.x = x;
+	this.y = y;
+	this.angle = angle;
+}
+
+Animation.prototype = {
+	update_sprite: function(context){
+		this.sprite.draw_sprite(context, this.x, this.y, -this.angle * Math.PI / 180);
+	}
+}
+
+var GameButton = function(sprite, rectangle){
+	this.sprite = sprite; this.rectangle = rectangle; this.choice = 0;
+}
+
+GameButton.prototype = {
+	is_clicked: function(bool, p){
+		var clicked = bool && this.rectangle.point_check(p);
+		this.choice = clicked == true ? 1 : 0;
+		return clicked;
+	},
+	update_sprite: function(context){
+		this.sprite[this.choice].draw_sprite(context, this.rectangle.x, this.rectangle.y);
+	}
+}
+
+var GameObject = function(type, sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 4){
 	/* object properties */
 	this.sprite = sprite;
 	this.x = x;
@@ -54,6 +105,9 @@ var GameObject = function(sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 4
 	this.vy = 0; 
 	this.radius = radius;
 	this.points = []; // collision vertices
+	this.type = type;
+	this.hp = 100;
+	this.destroyed = false;
 }
 
 GameObject.prototype = {
@@ -73,6 +127,7 @@ GameObject.prototype = {
 		new Point(this.x+this.radius, this.y-this.radius),
 		new Point(this.x-this.radius, this.y+this.radius),
 		new Point(this.x+this.radius, this.y+this.radius)];
+		if(this.hp <= 0) this.destroyed = true;
 	},
 	jump_previous: function(){
 		this.x = this.prev_x; 
@@ -80,44 +135,14 @@ GameObject.prototype = {
 	}
 }
 
-var GameButton = function(sprite, rectangle){
-	this.sprite = sprite; this.rectangle = rectangle; this.choice = 0;
-}
-
-GameButton.prototype = {
-	is_clicked: function(bool, p){
-		var clicked = bool && this.rectangle.point_check(p);
-		this.choice = clicked == true ? 1 : 0;
-		return clicked;
-	},
-	update_sprite: function(context){
-		this.sprite[this.choice].draw_sprite(context, this.rectangle.x, this.rectangle.y);
-	}
-}
-
-var Point = function(x, y){
-	this.x = x;
-	this.y = y;
-}
-
-var Rectangle = function(x, y, width, height){
-	this.x = x; this.y = y; this.width = width; this.height = height;
-}
-
-Rectangle.prototype = {
-	point_check: function(p){
-		return ((p.x >= this.x) && (p.x <= this.x + this.width) && (p.y >= this.y) && (p.y <= this.y + this.height));
-	}
-}
-
-var collision_cell = function(rectangle, is_horizontal_border, is_vertical_border){
+var CollisionCell = function(rectangle, is_horizontal_border, is_vertical_border){
 	this.rectangle = rectangle;
 	this.is_horizontal_border = is_horizontal_border;
 	this.is_vertical_border   = is_vertical_border;
 	this.cell_objects = new Array();
 }
 
-var collision_area = function(width, height, rectangle){
+var CollisionArea = function(width, height, rectangle){
 
 	this.width  = width;
 	this.height = height;
@@ -133,12 +158,12 @@ var collision_area = function(width, height, rectangle){
 		for(j = rectangle.y; j< rectangle.y+rectangle.height; j += height){
 			var is_vertical_border   = i == 0 || i + width  >= rectangle.width ;
 			var is_horizontal_border = j == 0 || j + height >= rectangle.height;
-			this.cells.push(new collision_cell(new Rectangle(i,j, width, height), is_horizontal_border, is_vertical_border));
+			this.cells.push(new CollisionCell(new Rectangle(i,j, width, height), is_horizontal_border, is_vertical_border));
 		}
 	}
 }
 
-collision_area.prototype = {
+CollisionArea.prototype = {
 	update_collisions: function(game_objects){
 		for(k=0;k<this.length;k++) this.cells[k].cell_objects=[];
 		for(k=0; k<game_objects.length; k++){
@@ -150,7 +175,7 @@ collision_area.prototype = {
 				if(px<0) px = 0; if(px>=this.length_x) px = this.length_x-1;
 				if(py<0) py = 0; if(py>=this.length_y) py = this.length_y-1;	
 
-				var index = (px*this.length_x) + py;
+				var index = (px*this.length_y) + py;
 				if(!rectangles.includes(index)) 
 					rectangles.push(index);
 			}							
@@ -188,6 +213,22 @@ collision_area.prototype = {
 		}
 	}
 
+}
+
+function getHorizontalAngle(angle){
+	if(angle <= 90){ 		return - angle;
+	}else if(angle <= 180){ return 180 - angle;
+	}else if(angle <= 270){ return - angle + 180;
+	}else{ 				    return 360 - angle;
+	}
+}
+
+function getVerticalAngle(angle){
+	if(angle <= 90){ 	    return 90 - angle;
+	}else if(angle <= 180){ return - angle + 90;
+	}else if(angle <= 270){ return 270 - angle;
+	}else{					return - angle + 270; 
+	}
 }
 
 function drawLine(context, x1, y1, x2, y2, color, width){
@@ -234,22 +275,6 @@ function drawText(context, string, x, y, color = "white" , font = "18px Verdana"
 
 function randomInt(min, max){
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function getHorizontalAngle(angle){
-	if(angle <= 90){ 		return - angle;
-	}else if(angle <= 180){ return 180 - angle;
-	}else if(angle <= 270){ return - angle + 180;
-	}else{ 				    return 360 - angle;
-	}
-}
-
-function getVerticalAngle(angle){
-	if(angle <= 90){ 	    return 90 - angle;
-	}else if(angle <= 180){ return - angle + 90;
-	}else if(angle <= 270){ return 270 - angle;
-	}else{					return - angle + 270; 
-	}
 }
 
 function loadImage(src){
