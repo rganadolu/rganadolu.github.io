@@ -110,55 +110,81 @@ Rectangle.prototype = {
 	}
 }
 
+var collision_cell = function(rectangle, is_horizontal_border, is_vertical_border){
+	this.rectangle = rectangle;
+	this.is_horizontal_border = is_horizontal_border;
+	this.is_vertical_border   = is_vertical_border;
+	this.cell_objects = new Array();
+}
+
 var collision_area = function(width, height, rectangle){
+
 	this.width  = width;
 	this.height = height;
+	this.rectangle = rectangle;
+	
+	this.length_x = (rectangle.width  - rectangle.x) / width;
+	this.length_y = (rectangle.height - rectangle.y) / height;
+	this.length = this.length_x * this.length_y;
+
 	this.cells  = [];
-	this.border = [];
-	this.length_x = rectangle.x + rectangle.width  / width;
-	this.length_y = rectangle.y + rectangle.height / height;
-	this.length = 0;
+
 	for(i = rectangle.x; i<rectangle.x+rectangle.width; i += width){
 		for(j = rectangle.y; j< rectangle.y+rectangle.height; j += height){
-			this.length++;
-			this.cells.push(new Rectangle(i,j, width, height));
-			if(i==0 || j == 0 || i + width >= rectangle.width || j + height >= rectangle.height){
-				this.border.push(true);
-			}else{
-				this.border.push(false);
-			}
+			var is_vertical_border   = i == 0 || i + width  >= rectangle.width ;
+			var is_horizontal_border = j == 0 || j + height >= rectangle.height;
+			this.cells.push(new collision_cell(new Rectangle(i,j, width, height), is_horizontal_border, is_vertical_border));
 		}
 	}
-	this.cell_objects = new Array(this.length);
 }
 
 collision_area.prototype = {
-
 	update_collisions: function(game_objects){
-
-		this.cell_objects = new Array(this.length);
-
-		for(i=0; i<this.length; i++){
-			this.cell_objects[i] = new Array();
-		}
-
+		for(k=0;k<this.length;k++) this.cells[k].cell_objects=[];
 		for(k=0; k<game_objects.length; k++){
-
 			var rectangles =[];	
 			for(i = 0; i<4; i++){
 				var px = Math.floor(game_objects[k].points[i].x / this.width);
 				var py = Math.floor(game_objects[k].points[i].y / this.height);
+
 				if(px<0) px = 0; if(px>=this.length_x) px = this.length_x-1;
 				if(py<0) py = 0; if(py>=this.length_y) py = this.length_y-1;	
 
 				var index = (px*this.length_x) + py;
 				if(!rectangles.includes(index)) 
 					rectangles.push(index);
-			}
-								
+			}							
 			for(i=0; i<rectangles.length; i++){					
-				this.cell_objects[rectangles[i]].push(game_objects[k]);						
+				this.cells[rectangles[i]].cell_objects.push(game_objects[k]);						
 			}
+		}
+
+		for(k=0; k<this.length; k++){
+
+			if(this.cells[k].is_horizontal_border == true){
+				for(i=0;i<this.cells[k].cell_objects.length;i++){
+					var object = this.cells[k].cell_objects[i];				
+					/* checks horizontal borders */	
+					if( object.y - object.radius  <= this.rectangle.y || object.y + object.radius >= this.rectangle.height){
+						object.jump_previous();
+						object.angle += 2 * getHorizontalAngle(object.angle);
+					}
+				}
+			}
+
+			if(this.cells[k].is_vertical_border == true){
+				for(i=0;i<this.cells[k].cell_objects.length;i++){
+					var object = this.cells[k].cell_objects[i];
+					/* checks vertical borders */	
+					if( object.x - object.radius <= this.rectangle.x || object.x + object.radius  >= this.rectangle.width){
+						object.jump_previous();
+						object.angle += 2 * getVerticalAngle(object.angle);
+					}				
+				}
+			}
+
+
+			// collision checks
 		}
 	}
 

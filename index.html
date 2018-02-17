@@ -41,7 +41,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.6 - debug: "+ debugMode + " - mobile: " + isMobile;
+			var version = "RGA v0.3.6.1 - debug: "+ debugMode + " - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -266,7 +266,7 @@
 				); // right button
 
 				game_objects.push(
-					new GameObject(new Sprite(img_ship, 81, 63, "center", "center", 1, 0), canvas.width / 2, canvas.height / 2, 90, 25, 4)
+					new GameObject(new Sprite(img_ship, 90, 63, "center", "center", 4, 35), canvas.width / 2, canvas.height / 2, 90, 25, 4)
 				); // spaceship
 
 				for(i=0;i<1000;i++){
@@ -324,18 +324,6 @@
 				} // keyboard controls
 
 				for(i=0; i<game_objects.length;i++){
-					/* checks vertical borders */
-					if( game_objects[i].x - game_objects[i].radius <= 0 || game_objects[i].x + game_objects[i].radius  >= canvas.width){
-						game_objects[i].jump_previous();
-						game_objects[i].angle += 2 * getVerticalAngle(game_objects[i].angle);
-					}
-						
-					/* checks horizontal borders */	
-					if( game_objects[i].y - game_objects[i].radius  <= 0 || game_objects[i].y + game_objects[i].radius >= canvas.height){
-						game_objects[i].jump_previous();
-						game_objects[i].angle += 2 * getHorizontalAngle(game_objects[i].angle);
-					}
-
 					game_objects[i].update_object();
 				}
 
@@ -370,8 +358,10 @@
 						}
 					}
 
+
+
 					for(i=0; i<collisions.length; i++){
-						drawText(context, collisions.cell_objects[i].length, collisions.cells[i].x + 20, collisions.cells[i].y +60);
+						drawText(context, collisions.cells[i].cell_objects.length, collisions.cells[i].rectangle.x + 20, collisions.cells[i].rectangle.y +60);
 					}
 
 
