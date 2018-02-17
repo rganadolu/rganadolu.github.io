@@ -41,7 +41,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.6.2 - debug: "+ debugMode + " - mobile: " + isMobile;
+			var version = "RGA v0.3.6.3 - debug: "+ debugMode + " - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -272,7 +272,7 @@
 					canvas.width / 2, canvas.height / 2, 90, 25, 4)
 				); // spaceship
 
-				for(i=0;i<20;i++){
+				for(i=0;i<10;i++){
 					game_objects.push(
 						new GameObject("asteroid", new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0),
 						randomInt(100,1180), randomInt(100,620) , randomInt(0,359), 32, randomInt(1,3))
@@ -316,8 +316,8 @@
 
 				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
 					game_objects[0].angle += 5;
-					if(animations.length<100)
-					animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 30, false), randomInt(0,1280),randomInt(0,720)));
+					/*if(animations.length<100)
+					animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 30, false), randomInt(0,1280),randomInt(0,720)));*/
 				} // left button is clicked
 
 				if(game_buttons[1].is_clicked(mouseClick, mouse_point)){
@@ -347,7 +347,7 @@
 
 				collisions.update_collisions(game_objects);
 
-				if(debugMode){
+				if(!debugMode){
 
 					/*for(i =0;i<game_objects.length;i++)
 					drawText(context, Math.floor(game_objects[i].x) + ", " + Math.floor(game_objects[i].y), game_objects[i].x-30, game_objects[i].y - 50);*/
