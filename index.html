@@ -41,7 +41,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.5.2 - debug: "+ debugMode + " - mobile: " + isMobile;
+			var version = "RGA v0.3.6 - debug: "+ debugMode + " - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -269,7 +269,7 @@
 					new GameObject(new Sprite(img_ship, 81, 63, "center", "center", 1, 0), canvas.width / 2, canvas.height / 2, 90, 25, 4)
 				); // spaceship
 
-				for(i=0;i<10;i++){
+				for(i=0;i<1000;i++){
 					game_objects.push(
 						new GameObject(new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0), randomInt(100,1180), randomInt(100,620) , randomInt(0,359), 32, 2)
 					); // test asteroids
