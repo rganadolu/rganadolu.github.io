@@ -111,14 +111,15 @@ Rectangle.prototype = {
 }
 
 var collision_area = function(width, height, rectangle){
-	this.length = 0;
 	this.width  = width;
 	this.height = height;
 	this.cells  = [];
 	this.border = [];
-	this.cell_container = [[]];
-	for(i = rectangle.x; i< rectangle.x+rectangle.width; i += width){
+	this.length_x = 0, this.length_y = 0, this.length = 0;
+	for(i = rectangle.x; i<rectangle.x+rectangle.width; i += width){
+		this.length_x++;
 		for(j = rectangle.y; j< rectangle.y+rectangle.height; j += height){
+			this.length_y++;
 			this.length++;
 			this.cells.push(new Rectangle(i,j, width, height));
 			if(i==0 || j == 0 || i + width >= rectangle.width || j + height >= rectangle.height){
@@ -128,6 +129,40 @@ var collision_area = function(width, height, rectangle){
 			}
 		}
 	}
+	this.cell_objects = new Array(this.length_x*this.length_y);
+}
+
+collision_area.prototype = {
+
+	update_collisions: function(game_objects){
+
+		this.cell_objects = new Array(this.length_x*this.length_y);
+		
+		for(i=0; i<this.length; i++){
+			this.cell_objects[i] = new Array();
+		}
+
+		for(k=0; k<game_objects.length; k++){
+
+			var rectangles =[];	
+
+			for(i = 0; i<4; i++){
+				var px = Math.floor(game_objects[k].points[i].x / this.width);
+				var py = Math.floor(game_objects[k].points[i].y / this.height);
+				if(px<0) px = 0; if(px>this.length_x-1) px = this.length_x-1;
+				if(py<0) py = 0; if(py>this.length_y-1) py = this.length_y-1;	
+
+				var index = (px*this.length_x) + py;
+				if(!rectangles.includes(index)) 
+					rectangles.push(index);
+			}
+								
+			for(i=0; i<rectangles.length; i++){					
+				this.cell_objects[rectangles[i]].push(game_objects[k]);						
+			}
+		}
+	}
+
 }
 
 function drawLine(context, x1, y1, x2, y2, color, width){
@@ -148,7 +183,6 @@ function drawRectangle(context, x, y, width, height, color, alpha){
     context.rect(x, y, width, height);
     context.fillStyle = color;
     context.fill();
-    context.stroke();
     context.restore();
 }
 
@@ -173,8 +207,8 @@ function drawText(context, string, x, y, color = "white" , font = "18px Verdana"
 	context.restore();
 }
 
-function randomInt(x1, x2){
-    return Math.floor((Math.random() * x2) + x1);
+function randomInt(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function getHorizontalAngle(angle){

@@ -41,7 +41,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.5.1 - debug: "+ debugMode + " - mobile: " + isMobile;
+			var version = "RGA v0.3.5.2 - debug: "+ debugMode + " - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -270,10 +270,11 @@
 				); // spaceship
 
 				for(i=0;i<10;i++){
-				game_objects.push(
-					new GameObject(new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0), 200, 200 , randomInt(0,359), 32, 4)
-				); // dummy objects
+					game_objects.push(
+						new GameObject(new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0), randomInt(100,1180), randomInt(100,620) , randomInt(0,359), 32, 2)
+					); // test asteroids
 				}
+				
 				loop_game1();
 
 			}
@@ -338,12 +339,15 @@
 					game_objects[i].update_object();
 				}
 
-				
+				collisions.update_collisions(game_objects);
 
 				if(debugMode){
 
+					/*for(i =0;i<game_objects.length;i++)
+					drawText(context, Math.floor(game_objects[i].x) + ", " + Math.floor(game_objects[i].y), game_objects[i].x-30, game_objects[i].y - 50);*/
+
 					drawText(context, version, 20, 30);
-					drawText(context, mouseClick + " at x: " + Math.round(mouse_point.x) + " y: " + Math.round(mouse_point.y), 20, 60);
+					/*drawText(context, mouseClick + " at x: " + Math.round(mouse_point.x) + " y: " + Math.round(mouse_point.y), 20, 60);
 
 					var isFullscreen = (screen.availHeight || screen.height-30) <= window.innerHeight;
 					drawText(context, "fullscreen: " + isFullscreen, 20, 120);
@@ -357,42 +361,19 @@
 						}
 					}else{
 						drawText(context, keys, 20, 90); 
-					}
+					}*/
 
 					for(i = 0; i<canvas.width; i += collisions.width){
 						for(j = 0; j<canvas.height; j += collisions.height){
-						//	drawLine(context, i, 0, i,canvas.height, "lime", 2); // vertical lines
-						//	drawLine(context, 0, j, canvas.width, j, "lime", 2); // horizontal lines
+							drawLine(context, i, 0, i,canvas.height, "lime", 2); // vertical lines
+							drawLine(context, 0, j, canvas.width, j, "lime", 2); // horizontal lines
 						}
 					}
 
-					//collisions.cell_container = [[]];
-
-					for(k=0;k<game_objects.length;k++){
-
-						//drawRectangle(context, game_objects[k].x- game_objects[k].radius,
-						//game_objects[k].y- game_objects[k].radius, game_objects[k].radius*2, game_objects[k].radius*2, "gray", 0.5 );
-
-						for(i = 0; i<4; i++)
-						//	drawCircle(context, 1, game_objects[k].points[i], 5, "red", "black", 3);
-
-						var rectangles =[];
-
-						for(i = 0; i<4; i++){
-							var px = Math.floor(game_objects[k].points[i].x / collisions.width);
-							var py = Math.floor(game_objects[k].points[i].y / collisions.height);
-							if(px<0) px = 0;
-							if(px>4) px = 4;
-							if(py<0) py = 0;
-							if(py>4) py = 4;
-							if(!rectangles.includes((px*5) + py)) 
-								rectangles.push((px*5) + py);
-						}
-								
-						for(i=0; i<rectangles.length;i++){
-								drawRectangle(context, collisions.cells[rectangles[i]].x, collisions.cells[rectangles[i]].y, collisions.width, collisions.height, "white", 0.1);		
-						}
+					for(i=0; i<collisions.length; i++){
+						drawText(context, collisions.cell_objects[i].length, collisions.cells[i].x + 20, collisions.cells[i].y +60);
 					}
+
 
 				} // debug mode end
 
