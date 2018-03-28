@@ -41,12 +41,12 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.6.3 - debug: "+ debugMode + " - mobile: " + isMobile;
+			var version = "RGA v0.3.8 - debug: "+ debugMode + " - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
 			var mouse_point = new Point(0, 0);
-		    var game_area = new Rectangle(0,0, canvas.width, canvas.height);
+		    var game_area = new Rectangle(0, 0, canvas.width, canvas.height);
 
 			var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
                             			window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
@@ -214,6 +214,8 @@
 			var game_buttons;
 			var collisions;
 			var animations;
+			var spawn_points;
+			var objectId = 0;
 
 			/* GAME LOGIC BEGINS HERE */
 
@@ -254,9 +256,12 @@
 
 			function load_game1(){
 
-				game_buttons = []; game_objects = []; animations = [];
+				game_buttons = []; game_objects = []; animations = []; spawn_points = [];
 				collisions = new CollisionArea(128, 144, game_area);
 
+				spawn_points = [
+				new SpawnPoint(game_area.x-100,game_area.y-100,45),
+				];
 				game_buttons.push(new GameButton(
 					[new Sprite(img_btn_left, 160, 160, 0, 0), new Sprite(img_btn_left2, 160, 160, 0, 0)], 
 					 new Rectangle(80, 500, 160, 160))
@@ -268,14 +273,16 @@
 				); // right button
 
 				game_objects.push(
-					new GameObject("spacheship", new Sprite(img_ship, 90, 63, "center", "center", 4, 35),
-					canvas.width / 2, canvas.height / 2, 90, 25, 4)
+					new GameObject(objectId++, "spacheship",
+					new Sprite(img_ship, 90, 63, "center", "center", 4, 35),
+					canvas.width / 2, 100, 0, 25, 4)
 				); // spaceship
 
 				for(i=0;i<10;i++){
 					game_objects.push(
-						new GameObject("asteroid", new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0),
-						randomInt(100,1180), randomInt(100,620) , randomInt(0,359), 32, randomInt(1,3))
+						new GameObject(objectId++, "asteroid", 
+						new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0),
+						randomInt(0,1280),  randomInt(0,720), randomInt(0,360), 32, randomInt(1,3))
 					); // test asteroids
 				}
 				
@@ -289,42 +296,39 @@
 
 				context.fillStyle = "#44526B";
 				context.fillRect(0, 0, canvas.width, canvas.height);
+				var i;
 
-				var i = game_objects.length;			
+				/* DELETE GAME OBJECTS */
+				i = game_objects.length;			
+				while (--i >= 0) if(game_objects[i].destroyed == true) game_objects.splice(i, 1);	
 
-				while (--i >= 0) {
-					game_objects[i].update_sprite(context);
-				}
+				/* DRAW GAME OBJECTS */
+				i = game_objects.length;
+				while (--i >= 0) game_objects[i].update_sprite(context);
+				
+				/* DELETE ANIMATIONS */
+				i = animations.length;
+				while (--i >= 0) if(animations[i].sprite.finished == true) animations.splice(i, 1);		
 
+				/* DRAW ANIMATIONS */
+				i = animations.length;
+				while (--i >= 0) animations[i].update_sprite(context);	
+
+				/* DRAW BUTTONS */
 				i = game_buttons.length;
+				while (--i >= 0) game_buttons[i].update_sprite(context);
 
-				while (--i >= 0) {
-					game_buttons[i].update_sprite(context);
-				}
-
-				i = animations.length;
-
-				while (--i >= 0) {
-					animations[i].update_sprite(context);
-				}			
-
-				i = animations.length;
-
-				while (--i >= 0) {
-					if(animations[i].sprite.finished == true) animations.splice(i);
-				}	
-
+				/* HANDLE MOUSE CLICK & TOUCH */
 				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
 					game_objects[0].angle += 5;
-					/*if(animations.length<100)
-					animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 30, false), randomInt(0,1280),randomInt(0,720)));*/
 				} // left button is clicked
-
+	
 				if(game_buttons[1].is_clicked(mouseClick, mouse_point)){
 					game_objects[0].angle -= 5;
 					if(game_objects[0].angle <=0) game_objects[0].angle += 360;
 				} // right button is clicked
 
+				/* HANDLE KEYBOARD */
 				if(keyboardControl == true){
 					if(pressedKey == 37){
 						mouse_point.x = game_buttons[0].rectangle.x+80;
@@ -341,16 +345,38 @@
 					}*/
 				} // keyboard controls
 
+				/* UPDATE GAME OBJECTS */
 				for(i=0; i<game_objects.length;i++){
 					game_objects[i].update_object();
 				}
 
-				collisions.update_collisions(game_objects);
+				/* HANDLE COLLISIONS HERE */
+				var collisionList = collisions.update_collisions(game_objects);
 
-				if(!debugMode){
+				for(i=0; i<collisionList.length;i++){
+
+					var collision = collisionList[i];
+
+					if(collision.type1 != collision.type2){
+
+						var index = -1;
+
+						for(var c=0;c<game_objects.length;c++){
+							if(game_objects[c].id == collision.id2) index = c;		
+						}
+
+						animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 30, false), 
+							game_objects[index].x, game_objects[index].y));
+
+						game_objects[index].destroyed = true;
+	
+					}
+				}
+
+				if(debugMode){
 
 					/*for(i =0;i<game_objects.length;i++)
-					drawText(context, Math.floor(game_objects[i].x) + ", " + Math.floor(game_objects[i].y), game_objects[i].x-30, game_objects[i].y - 50);*/
+					drawText(context, Math.floor(pointDistance(this.game_objects[i].initial_point, this.game_objects[i].prev_point)), game_objects[i].x-30, game_objects[i].y - 50);*/
 
 					drawText(context, version, 20, 30);
 					/*drawText(context, mouseClick + " at x: " + Math.round(mouse_point.x) + " y: " + Math.round(mouse_point.y), 20, 60);
@@ -369,18 +395,17 @@
 						drawText(context, keys, 20, 90); 
 					}*/
 
-					for(i = 0; i<canvas.width; i += collisions.width){
-						for(j = 0; j<canvas.height; j += collisions.height){
-							drawLine(context, i, 0, i,canvas.height, "lime", 2); // vertical lines
-							drawLine(context, 0, j, canvas.width, j, "lime", 2); // horizontal lines
+					/*for(i = game_area.x; i<game_area.width; i += collisions.width){
+						for(j = game_area.y; j<game_area.height; j += collisions.height){
+							drawLine(context, i, game_area.y, i,game_area.height, "lime", 2); // vertical lines
+							drawLine(context, game_area.x, j, game_area.width, j, "lime", 2); // horizontal lines
 						}
-					}
+					}*/
 
-
-
+					/*
 					for(i=0; i<collisions.length; i++){
 						drawText(context, collisions.cells[i].cell_objects.length, collisions.cells[i].rectangle.x + 20, collisions.cells[i].rectangle.y +60);
-					}
+					}*/
 
 
 				} // debug mode end

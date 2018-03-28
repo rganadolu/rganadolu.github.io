@@ -14,6 +14,22 @@ Rectangle.prototype = {
 	}
 }
 
+var SpawnPoint = function(x, y, angle){
+	this.initial_point = new Point(x, y);
+	this.initial_angle = angle; 
+	this.x = randomInt(this.initial_point.x-400, this.initial_point.x+400);
+	this.y = randomInt(this.initial_point.y-400, this.initial_point.y+400);
+	this.angle = randomInt(this.initial_angle-45, this.initial_angle+45);
+}
+
+SpawnPoint.prototype = {
+	update_point: function(){
+		// this.x = randomInt(this.initial_point.x-400, this.initial_point.x+400);
+		// this.y = randomInt(this.initial_point.y-400, this.initial_point.y+400);
+		this.angle = randomInt(this.initial_angle-45, this.initial_angle+45);
+	}
+}
+
 var Sprite = function(image, width, height, center_x = "center", center_y = "center", frame_number = 1, animation_speed = 100, loop) {
 
 	if(center_x == "center") center_x = width/2;
@@ -35,7 +51,6 @@ var Sprite = function(image, width, height, center_x = "center", center_y = "cen
 	this.loop_completeness = 1;
 	this.loop = loop;
 	this.finished = false;
-				//if(this.loop == false) this.finished = true;
 }
 
 Sprite.prototype = {
@@ -92,22 +107,24 @@ GameButton.prototype = {
 	}
 }
 
-var GameObject = function(type, sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 4){
+var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 4){
 	/* object properties */
+	this.id = id;
+	this.type = type;
 	this.sprite = sprite;
 	this.x = x;
 	this.y = y;
-	this.prev_x = x;
-	this.prev_y = y;
+	this.initial_point = new Point(this.x, this.y);
+	this.prev_point = this.initial_point;
 	this.angle  = angle;
 	this.speed  = speed;
 	this.vx = 0;
 	this.vy = 0; 
 	this.radius = radius;
 	this.points = []; // collision vertices
-	this.type = type;
 	this.hp = 100;
 	this.destroyed = false;
+	this.border_collision = this.type != "asteroid" ? true : true;
 }
 
 GameObject.prototype = {
@@ -118,21 +135,26 @@ GameObject.prototype = {
 		this.angle %= 360;
 		var _angle = -this.angle * Math.PI / 180; // clockwise radian angle
 		var newvx = Math.cos(_angle) * this.speed, newvy = Math.sin(_angle) * this.speed;
-		this.prev_x = this.x;
-		this.prev_y = this.y;
+		this.prev_point = new Point(this.x, this.y);
 		this.x += newvx; 
 		this.y += newvy;
 		this.points = [
-		new Point(this.x-this.radius, this.y-this.radius),
-		new Point(this.x+this.radius, this.y-this.radius),
-		new Point(this.x-this.radius, this.y+this.radius),
-		new Point(this.x+this.radius, this.y+this.radius)];
+		new Point(this.x-this.radius, this.y-this.radius),new Point(this.x+this.radius, this.y-this.radius),
+		new Point(this.x-this.radius, this.y+this.radius),new Point(this.x+this.radius, this.y+this.radius)];
 		if(this.hp <= 0) this.destroyed = true;
+		if(this.border_collision == false && pointDistance(this.initial_point, this.prev_point) > 4000){
+			this.destroyed = true;
+		}
+		//if(this.y > this.radius && this.border_collision == false) this.border_collision = true;
 	},
 	jump_previous: function(){
-		this.x = this.prev_x; 
-		this.y = this.prev_y;
+		this.x = this.prev_point.x; 
+		this.y = this.prev_point.y;
 	}
+}
+
+var Collision = function(id1, id2, type1, type2){
+	this.id1 = id1; this.id2 = id2; this.type1 = type1; this.type2 = type2;
 }
 
 var CollisionCell = function(rectangle, is_horizontal_border, is_vertical_border){
@@ -146,73 +168,93 @@ var CollisionArea = function(width, height, rectangle){
 
 	this.width  = width;
 	this.height = height;
-	this.rectangle = rectangle;
+	this.rectangle = rectangle; // whole game area
 	
-	this.length_x = (rectangle.width  - rectangle.x) / width;
-	this.length_y = (rectangle.height - rectangle.y) / height;
+	this.length_x = Math.floor((rectangle.width  - rectangle.x) / width);
+	this.length_y = Math.floor((rectangle.height - rectangle.y) / height);
 	this.length = this.length_x * this.length_y;
 
 	this.cells  = [];
 
-	for(i = rectangle.x; i<rectangle.x+rectangle.width; i += width){
-		for(j = rectangle.y; j< rectangle.y+rectangle.height; j += height){
-			var is_vertical_border   = i == 0 || i + width  >= rectangle.width ;
-			var is_horizontal_border = j == 0 || j + height >= rectangle.height;
+	for(i = rectangle.x; i<rectangle.width-rectangle.x; i += width){
+		for(j = rectangle.y; j<rectangle.height-rectangle.y; j += height){
+			var is_vertical_border   = i == rectangle.x || i + width  >= rectangle.width  - rectangle.x ;
+			var is_horizontal_border = j == rectangle.y || j + height >= rectangle.height - rectangle.y;
 			this.cells.push(new CollisionCell(new Rectangle(i,j, width, height), is_horizontal_border, is_vertical_border));
 		}
 	}
+
+	this.horizontal_cells = this.cells.filter(cell => {return cell.is_horizontal_border == true;});
+	this.vertical_cells   = this.cells.filter(cell => {return cell.is_vertical_border   == true;});
 }
 
 CollisionArea.prototype = {
 	update_collisions: function(game_objects){
-		for(k=0;k<this.length;k++) this.cells[k].cell_objects=[];
-		for(k=0; k<game_objects.length; k++){
+		
+		this.cells.forEach(cell => {cell.cell_objects = new Array();});
+
+		//game_objects.filter(game_object => game_object.border_collision == true).forEach(object => {
+		game_objects.forEach(object => {
 			var rectangles =[];	
 			for(i = 0; i<4; i++){
-				var px = Math.floor(game_objects[k].points[i].x / this.width);
-				var py = Math.floor(game_objects[k].points[i].y / this.height);
+				var px = Math.floor(object.points[i].x / this.width);
+				var py = Math.floor(object.points[i].y / this.height);
 
 				if(px<0) px = 0; if(px>=this.length_x) px = this.length_x-1;
 				if(py<0) py = 0; if(py>=this.length_y) py = this.length_y-1;	
 
 				var index = (px*this.length_y) + py;
-				if(!rectangles.includes(index)) 
-					rectangles.push(index);
-			}							
-			for(i=0; i<rectangles.length; i++){					
-				this.cells[rectangles[i]].cell_objects.push(game_objects[k]);						
+				if(!rectangles.includes(index)) rectangles.push(index);
 			}
-		}
+			rectangles.forEach(rect => {
+				this.cells[rect].cell_objects.push(object);		
+			});	
+		});
 
-		for(k=0; k<this.length; k++){
+		this.horizontal_cells.forEach(cell => {
+			cell.cell_objects.forEach(object => {
+				if( object.border_collision == true && 
+					(object.y - object.radius <= this.rectangle.y || object.y + object.radius >= this.rectangle.height)){
+				 	object.jump_previous();
+				 	object.angle += 2 * getHorizontalAngle(object.angle);
+				}
+			});
+		});
 
-			if(this.cells[k].is_horizontal_border == true){
-				for(i=0;i<this.cells[k].cell_objects.length;i++){
-					var object = this.cells[k].cell_objects[i];				
-					/* checks horizontal borders */	
-					if( object.y - object.radius  <= this.rectangle.y || object.y + object.radius >= this.rectangle.height){
-						object.jump_previous();
-						object.angle += 2 * getHorizontalAngle(object.angle);
+		this.vertical_cells.forEach(cell => {
+			cell.cell_objects.forEach(object => {
+				if( object.border_collision == true && 
+					(object.x - object.radius <= this.rectangle.x || object.x + object.radius  >= this.rectangle.width)){
+					object.jump_previous();
+					object.angle += 2 * getVerticalAngle(object.angle);
+				}	
+			});
+		});
+
+		var collisionList = [];
+
+		for(var c = 0; c<this.cells.length; c++){
+			for(var k=0; k<this.cells[c].cell_objects.length; k++){
+				for(var j=k; j<this.cells[c].cell_objects.length; j++){
+
+					var object1 = this.cells[c].cell_objects[k];
+					var object2 = this.cells[c].cell_objects[j];
+					//object1.id != object2.id && object1.type != object2.type && 
+					if(object1.radius + object2.radius >= pointDistance(object1, object2)){				
+						collisionList.push(new Collision(object1.id, object2.id, object1.type, object2.type));
 					}
 				}
 			}
-
-			if(this.cells[k].is_vertical_border == true){
-				for(i=0;i<this.cells[k].cell_objects.length;i++){
-					var object = this.cells[k].cell_objects[i];
-					/* checks vertical borders */	
-					if( object.x - object.radius <= this.rectangle.x || object.x + object.radius  >= this.rectangle.width){
-						object.jump_previous();
-						object.angle += 2 * getVerticalAngle(object.angle);
-					}				
-				}
-			}
-
-
-			// collision checks
 		}
+
+		return collisionList;
+
 	}
 
+}
+
+function pointDistance(p1, p2){
+	return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
 }
 
 function getHorizontalAngle(angle){
