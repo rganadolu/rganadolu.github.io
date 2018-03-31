@@ -41,7 +41,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.8 - debug: "+ debugMode + " - mobile: " + isMobile;
+			var version = "RGA v0.3.8.1 - 31 Mar 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -226,6 +226,31 @@
 				load_welcome();
 			}
 
+			function updateObjects(game_objects, animations, game_buttons){
+
+				var i;
+
+				/* DELETE GAME OBJECTS */
+				i = game_objects.length;			
+				while (--i >= 0) if(game_objects[i].destroyed == true) game_objects.splice(i, 1);	
+
+				/* DRAW GAME OBJECTS */
+				i = game_objects.length;
+				while (--i >= 0) game_objects[i].update_sprite(context);
+				
+				/* DELETE ANIMATIONS */
+				i = animations.length;
+				while (--i >= 0) if(animations[i].sprite.finished == true) animations.splice(i, 1);		
+
+				/* DRAW ANIMATIONS */
+				i = animations.length;
+				while (--i >= 0) animations[i].update_sprite(context);	
+
+				/* DRAW BUTTONS */
+				i = game_buttons.length;
+				while (--i >= 0) game_buttons[i].update_sprite(context);			
+			}
+
 			function load_welcome(){
 				game_buttons = []; game_objects = []; animations = [];
 				animations.push(new Animation(new Sprite(img_landscape, 360, 300, "center", "center", 1), canvas.width/2, canvas.height/2));
@@ -296,27 +321,8 @@
 
 				context.fillStyle = "#44526B";
 				context.fillRect(0, 0, canvas.width, canvas.height);
-				var i;
 
-				/* DELETE GAME OBJECTS */
-				i = game_objects.length;			
-				while (--i >= 0) if(game_objects[i].destroyed == true) game_objects.splice(i, 1);	
-
-				/* DRAW GAME OBJECTS */
-				i = game_objects.length;
-				while (--i >= 0) game_objects[i].update_sprite(context);
-				
-				/* DELETE ANIMATIONS */
-				i = animations.length;
-				while (--i >= 0) if(animations[i].sprite.finished == true) animations.splice(i, 1);		
-
-				/* DRAW ANIMATIONS */
-				i = animations.length;
-				while (--i >= 0) animations[i].update_sprite(context);	
-
-				/* DRAW BUTTONS */
-				i = game_buttons.length;
-				while (--i >= 0) game_buttons[i].update_sprite(context);
+				updateObjects(game_objects, animations, game_buttons);
 
 				/* HANDLE MOUSE CLICK & TOUCH */
 				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
@@ -365,11 +371,12 @@
 							if(game_objects[c].id == collision.id2) index = c;		
 						}
 
-						animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 30, false), 
+						animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 50, false), 
 							game_objects[index].x, game_objects[index].y));
 
 						game_objects[index].destroyed = true;
-	
+
+						// reward here
 					}
 				}
 
