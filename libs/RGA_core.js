@@ -124,7 +124,7 @@ var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1,
 	this.points = []; // collision vertices
 	this.hp = 100;
 	this.destroyed = false;
-	this.border_collision = this.type != "asteroid" ? true : true;
+	this.border_collision = this.type != "asteroid" ? true : false;
 }
 
 GameObject.prototype = {
