@@ -41,7 +41,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.8.1 - 31 Mar 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.3.9.1 - 7 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -298,12 +298,12 @@
 				); // right button
 
 				game_objects.push(
-					new GameObject(objectId++, "spacheship",
+					new GameObject(objectId++, "spaceship",
 					new Sprite(img_ship, 90, 63, "center", "center", 4, 35),
 					canvas.width / 2, 100, 0, 25, 4)
 				); // spaceship
 
-				for(i=0;i<10;i++){
+				for(i=0;i<20;i++){
 					var sprite = new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0);
 					var point  = generatePoint();
 					var pointInCanvas = new Point(randomInt(0,canvas.width),randomInt(0,canvas.height));
@@ -359,6 +359,16 @@
 				/* HANDLE COLLISIONS HERE */
 				var collisionList = collisions.update_collisions(game_objects);
 
+					//game_objects.filter(game_object => game_object.border_collision == true).forEach(object => {
+
+				game_objects.filter(game_object => game_object.type == "asteroid").forEach(object => {
+					var pc = new Point(game_objects[0].x, game_objects[0].y);
+					var po = new Point(object.x, object.y);
+					if(pointDistance(po, pc)<=300)
+					drawLine(context, po, pc, "red", 2);
+				});
+
+
 				for(i=0; i<collisionList.length;i++){
 
 					var collision = collisionList[i];
@@ -402,14 +412,16 @@
 						drawText(context, keys, 20, 90); 
 					}*/
 
-					/*for(i = game_area.x; i<game_area.width; i += collisions.width){
+					/*drawCircle(context, 0.1, game_objects[0].prev_point, 250, "lime", "green");
+
+					for(i = game_area.x; i<game_area.width; i += collisions.width){
 						for(j = game_area.y; j<game_area.height; j += collisions.height){
 							drawLine(context, i, game_area.y, i,game_area.height, "lime", 2); // vertical lines
 							drawLine(context, game_area.x, j, game_area.width, j, "lime", 2); // horizontal lines
 						}
-					}*/
+					}
 
-					/*
+					
 					for(i=0; i<collisions.length; i++){
 						drawText(context, collisions.cells[i].cell_objects.length, collisions.cells[i].rectangle.x + 20, collisions.cells[i].rectangle.y +60);
 					}*/
@@ -425,6 +437,7 @@
 			}
 			
 			function generatePoint(){
+				
 				var possiblePointFromTop    = new Point(randomInt(-30, (canvas.width + 30)),-30);
 				var possiblePointFromBottom = new Point(randomInt(-30, (canvas.width + 30)), (canvas.height+30));
 				var possiblePointFromRight 	= new Point((canvas.width+30), randomInt(-30, (canvas.height+30)));	

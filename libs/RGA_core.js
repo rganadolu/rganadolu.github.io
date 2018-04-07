@@ -121,10 +121,10 @@ var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1,
 	this.vx = 0;
 	this.vy = 0; 
 	this.radius = radius;
-	this.points = []; // collision vertices
 	this.hp = 100;
 	this.destroyed = false;
 	this.border_collision = this.type != "asteroid" ? true : false;
+	if(this.type == "spaceship") this.input = [];
 }
 
 GameObject.prototype = {
@@ -138,9 +138,6 @@ GameObject.prototype = {
 		this.prev_point = new Point(this.x, this.y);
 		this.x += newvx; 
 		this.y += newvy;
-		this.points = [
-		new Point(this.x-this.radius, this.y-this.radius),new Point(this.x+this.radius, this.y-this.radius),
-		new Point(this.x-this.radius, this.y+this.radius),new Point(this.x+this.radius, this.y+this.radius)];
 		if(this.hp <= 0) this.destroyed = true;
 		if(this.border_collision == false && pointDistance(this.initial_point, this.prev_point) > 4000){
 			this.destroyed = true;
@@ -189,26 +186,61 @@ var CollisionArea = function(width, height, rectangle){
 }
 
 CollisionArea.prototype = {
+	
+	get_cells: function(object, radius){
+
+		var edges =[];	
+		var rectangles = [];	
+		var min_y, max_y, min_x, max_x;
+
+		var points = [
+		new Point(object.x-radius, object.y-radius), new Point(object.x-radius, object.y+radius),
+		new Point(object.x+radius, object.y-radius), new Point(object.x+radius, object.y+radius)];
+
+		for(var i = 0; i < 4; i++){
+			var px = Math.floor(points[i].x / this.width);
+			var py = Math.floor(points[i].y / this.height);
+
+			if(px<0) px = 0; if(px>=this.length_x) px = this.length_x-1;
+			if(py<0) py = 0; if(py>=this.length_y) py = this.length_y-1;	
+
+			var index = (px*this.length_y) + py;
+			edges.push(index);
+
+			switch(i){
+				case 0: min_x = px; min_y = py; break;
+				case 1: max_y = py; break;
+				case 2: max_x = px; break;
+			}
+		}
+
+		var xRange = max_x - min_x + 1;
+		var yRange = max_y - min_y + 1;
+
+		var aa = (edges[2]-edges[0])/(xRange-1);
+		var p  = edges[0];
+
+		for(var i = 0; i < xRange; i++){
+			for(var j = 0; j < yRange; j++){
+				if(!rectangles.includes(index)) rectangles.push(p++);
+			}
+			p = p - yRange + aa;
+		}
+
+		return rectangles;	
+	},
+
 	update_collisions: function(game_objects){
 		
 		this.cells.forEach(cell => {cell.cell_objects = new Array();});
 
 		//game_objects.filter(game_object => game_object.border_collision == true).forEach(object => {
+
 		game_objects.forEach(object => {
-			var rectangles =[];	
-			for(i = 0; i<4; i++){
-				var px = Math.floor(object.points[i].x / this.width);
-				var py = Math.floor(object.points[i].y / this.height);
-
-				if(px<0) px = 0; if(px>=this.length_x) px = this.length_x-1;
-				if(py<0) py = 0; if(py>=this.length_y) py = this.length_y-1;	
-
-				var index = (px*this.length_y) + py;
-				if(!rectangles.includes(index)) rectangles.push(index);
-			}
+			var rectangles = this.get_cells(object, object.radius);
 			rectangles.forEach(rect => {
 				this.cells[rect].cell_objects.push(object);		
-			});	
+			});
 		});
 
 		this.horizontal_cells.forEach(cell => {
@@ -273,13 +305,13 @@ function getVerticalAngle(angle){
 	}
 }
 
-function drawLine(context, x1, y1, x2, y2, color, width){
+function drawLine(context, p1, p2, color, width){
 	context.save();
 	context.strokeStyle = color;
 	context.lineWidth = width;
 	context.beginPath();
-    context.moveTo(x1, y1);
-    context.lineTo(x2, y2);
+    context.moveTo(p1.x, p1.y);
+    context.lineTo(p2.x, p2.y);
     context.stroke();
 	context.restore();
 }
