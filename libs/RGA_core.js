@@ -139,7 +139,7 @@ GameObject.prototype = {
 		this.x += newvx; 
 		this.y += newvy;
 		if(this.hp <= 0) this.destroyed = true;
-		if(this.border_collision == false && pointDistance(this.initial_point, this.prev_point) > 4000){
+		if(this.border_collision == false && pointDistance(this.initial_point, this.prev_point) > 1550){
 			this.destroyed = true;
 		}
 		//if(this.y > this.radius && this.border_collision == false) this.border_collision = true;
@@ -282,7 +282,14 @@ CollisionArea.prototype = {
 		return collisionList;
 
 	}
+}
 
+function objectCount(game_objects, rectangle, objType){
+	var count = 0;
+	game_objects.filter(game_object => game_object.type == objType).forEach(object => {
+		if(rectangle.point_check(new Point(object.x, object.y))) count++; 
+	});
+	return count;
 }
 
 function pointDistance(p1, p2){

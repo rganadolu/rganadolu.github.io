@@ -41,7 +41,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.9.1 - 7 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.3.9.2 - 8 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -216,6 +216,7 @@
 			var animations;
 			var spawn_points;
 			var objectId = 0;
+			var object_spawn = 0;
 
 			/* GAME LOGIC BEGINS HERE */
 
@@ -303,14 +304,8 @@
 					canvas.width / 2, 100, 0, 25, 4)
 				); // spaceship
 
-				for(i=0;i<20;i++){
-					var sprite = new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0);
-					var point  = generatePoint();
-					var pointInCanvas = new Point(randomInt(0,canvas.width),randomInt(0,canvas.height));
-					var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, generateAngle(point,pointInCanvas), 32, randomInt(1,3));
-					game_objects.push(gameObject); // test asteroids
-				}
-				
+				object_spawn = 0;
+
 				loop_game1();
 
 			}
@@ -323,6 +318,23 @@
 				context.fillRect(0, 0, canvas.width, canvas.height);
 
 				updateObjects(game_objects, animations, game_buttons);
+
+				object_spawn++;
+
+				if(object_spawn % 20 == 0){
+
+					var asteroidAdd = 15-objectCount(game_objects, game_area, "asteroid");
+
+					for(var i = 0; i< asteroidAdd; i++){
+						var sprite = new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0);
+						var point  = generatePoint();
+						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
+						var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, generateAngle(point, pointInCanvas), 32, randomInt(1,3));
+						game_objects.push(gameObject); // test asteroids
+					}
+
+					object_spawn = 0;
+				}
 
 				/* HANDLE MOUSE CLICK & TOUCH */
 				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
@@ -396,6 +408,7 @@
 					drawText(context, Math.floor(pointDistance(this.game_objects[i].initial_point, this.game_objects[i].prev_point)), game_objects[i].x-30, game_objects[i].y - 50);*/
 
 					drawText(context, version, 20, 30);
+					drawText(context, objectCount(game_objects, game_area, "asteroid"), 20, 60);
 					/*drawText(context, mouseClick + " at x: " + Math.round(mouse_point.x) + " y: " + Math.round(mouse_point.y), 20, 60);
 
 					var isFullscreen = (screen.availHeight || screen.height-30) <= window.innerHeight;
