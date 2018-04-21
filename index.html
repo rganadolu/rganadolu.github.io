@@ -42,7 +42,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.4 - 21 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.4.1 - 21 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -317,7 +317,16 @@
 				env.getNumStates = function() { return (36*4)+3; }
 				env.getMaxNumActions = function() { return 3; }
 
-				spec = { alpha: 0.01 }
+				spec = {};
+				spec.update = 'qlearn'; // qlearn | sarsa
+				spec.gamma = 0.1; // discount factor, [0, 1)
+				spec.epsilon = 0.5; // initial epsilon for epsilon-greedy policy, [0, 1)
+				spec.alpha = 0.5; // value function learning rate
+				spec.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec.experience_size = 10000; // size of experience
+				spec.learning_steps_per_iteration = 5;
+				spec.tderror_clamp = 1.0; // for robustness
+				spec.num_hidden_units = 200 // number of neurons in hidden layer
 
 				agent = new RL.DQNAgent(env, spec); 
 
@@ -327,6 +336,7 @@
 
 			var score = 0;
 			var frame = 0;
+			var pi = [];
 
 			function loop_game1(){
 
@@ -389,13 +399,15 @@
 				var action = agent.act(game_objects[spaceshipID_AI1].input);
 
 				switch(action){
-					case 0: game_objects[spaceshipID_AI1].angle += 5; break;
-					case 1: game_objects[spaceshipID_AI1].angle -= 5;
+					case 0: game_objects[spaceshipID_AI1].angle += 10; break;
+					case 1: game_objects[spaceshipID_AI1].angle -= 10;
 							if(game_objects[spaceshipID_AI1].angle <=0)
 								game_objects[0].angle += 360;
 							break;
 					case 2: break;
 				}
+
+				var sc = -0.2
 
 				for(i = 0; i < collisionList.length; i++){
 
@@ -414,7 +426,7 @@
 
 						game_objects[index].destroyed = true;
 
-						agent.learn(-1);
+						sc +=5;
 						score--;
 
 						// reward here
@@ -422,6 +434,10 @@
 				}
 
 				frame++;
+				agent.learn(sc);
+
+				/*if(spec.epsilon >= 0.05)
+					spec.epsilon -= 0.000001;*/
 
 				if(debugMode){
 
@@ -429,7 +445,16 @@
 					drawText(context, Math.floor(pointDistance(this.game_objects[i].initial_point, this.game_objects[i].prev_point)), game_objects[i].x-30, game_objects[i].y - 50);*/
 
 					drawText(context, version, 20, 30);
-					drawText(context, frame/(-1*score), 20, 60);
+					drawText(context, "frame: " + frame + " hit: " + -1*score + " r: " + Math.round(frame/(-1*score)), 20, 60);
+					if(frame % 60 == 0){
+						pi.push(frame/score);
+					}
+
+					for(var i=0;i<pi.length;i++){
+						drawLine(context, new Point(i,canvas.height), new Point(i,canvas.height + pi[i]),"red", 2, 0.4);
+					}
+
+
 					//drawText(context, game_objects[spaceshipID_AI1].nearObjects.length, 20, 90);
 
 					//drawText(context, game_objects[spaceshipID_AI1].nearObjects[0].angle, 20, 120);

@@ -156,7 +156,7 @@ GameObject.prototype = {
 
 		var eyeAngle = 360 / eyes;
 		this.nearObjects = [];
-		this.input = new Array((eyes*4)+3).fill(0);;
+		this.input = new Array((eyes*4)+3).fill(1.0);;
 		game_objects.filter(game_object => game_object.type == "asteroid").forEach(object => {
 			var p1 = new Point(this.x, this.y);
 			var p2 = new Point(object.x, object.y);
@@ -190,11 +190,11 @@ GameObject.prototype = {
 			this.input[index + 3] = object.vy;
 		}
 
-		index = eyes*4;
+		index = eyes * 4;
 
+		this.input[index] = this.angle;
 		this.input[index + 1] = this.vx;
 		this.input[index + 2] = this.vy;
-		this.input[index + 3] = this.angle;
 
 	}
 }
@@ -366,8 +366,9 @@ function getVerticalAngle(angle){
 	}
 }
 
-function drawLine(context, p1, p2, color, width){
+function drawLine(context, p1, p2, color, width, alpha){
 	context.save();
+	context.globalAlpha = alpha; 
 	context.strokeStyle = color;
 	context.lineWidth = width;
 	context.beginPath();
