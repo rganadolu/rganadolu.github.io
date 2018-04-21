@@ -6,6 +6,7 @@
 		<meta charset="utf-8"/>
 		<meta name="viewport" content="width=device-width,minimum-scale=1,maximum-scale=1,user-scalable=no,minimal-ui">
 		<script type="text/javascript" src = "libs/RGA_core.js"></script>
+		<script type="text/javascript" src = "libs/rl.js"></script>
 		<style>
 			html{
 				touch-action: none;
@@ -41,7 +42,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.3.9.2 - 8 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.4 - 21 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -214,9 +215,12 @@
 			var game_buttons;
 			var collisions;
 			var animations;
-			var spawn_points;
 			var objectId = 0;
-			var object_spawn = 0;
+			var spawn_timer = 0;
+			var spaceshipID_AI1, spaceshipID_AI2, spaceshipID_HU;
+			var env;
+			var spec;
+			var agent;
 
 			/* GAME LOGIC BEGINS HERE */
 
@@ -238,6 +242,9 @@
 				/* DRAW GAME OBJECTS */
 				i = game_objects.length;
 				while (--i >= 0) game_objects[i].update_sprite(context);
+
+				i = game_objects.length;
+				while (--i >= 0) game_objects[i].update_object();
 				
 				/* DELETE ANIMATIONS */
 				i = animations.length;
@@ -282,12 +289,9 @@
 
 			function load_game1(){
 
-				game_buttons = []; game_objects = []; animations = []; spawn_points = [];
+				game_buttons = []; game_objects = []; animations = [];
 				collisions = new CollisionArea(128, 144, game_area);
 
-				spawn_points = [
-				new SpawnPoint(game_area.x-100,game_area.y-100,45),
-				];
 				game_buttons.push(new GameButton(
 					[new Sprite(img_btn_left, 160, 160, 0, 0), new Sprite(img_btn_left2, 160, 160, 0, 0)], 
 					 new Rectangle(80, 500, 160, 160))
@@ -298,17 +302,31 @@
 					 new Rectangle(canvas.width - 240, 500, 160, 160))
 				); // right button
 
+				spaceshipID_AI1 = objectId;
+
 				game_objects.push(
 					new GameObject(objectId++, "spaceship",
 					new Sprite(img_ship, 90, 63, "center", "center", 4, 35),
 					canvas.width / 2, 100, 0, 25, 4)
 				); // spaceship
 
-				object_spawn = 0;
+				spawn_timer = 0;
+
+				env = {};
+
+				env.getNumStates = function() { return (36*4)+3; }
+				env.getMaxNumActions = function() { return 3; }
+
+				spec = { alpha: 0.01 }
+
+				agent = new RL.DQNAgent(env, spec); 
 
 				loop_game1();
 
 			}
+
+			var score = 0;
+			var frame = 0;
 
 			function loop_game1(){
 
@@ -319,25 +337,25 @@
 
 				updateObjects(game_objects, animations, game_buttons);
 
-				object_spawn++;
+				spawn_timer++;
 
-				if(object_spawn % 20 == 0){
+				if(spawn_timer % 30 == 0){
 
-					var asteroidAdd = 15-objectCount(game_objects, game_area, "asteroid");
+					var asteroidAdd = 15 - objectCount(game_objects, game_area, "asteroid");
 
 					for(var i = 0; i< asteroidAdd; i++){
 						var sprite = new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0);
 						var point  = generatePoint();
 						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
-						var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, generateAngle(point, pointInCanvas), 32, randomInt(1,3));
+						var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 32, randomInt(1,3));
 						game_objects.push(gameObject); // test asteroids
 					}
 
-					object_spawn = 0;
+					spawn_timer = 0;
 				}
 
 				/* HANDLE MOUSE CLICK & TOUCH */
-				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
+				/*if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
 					game_objects[0].angle += 5;
 				} // left button is clicked
 	
@@ -347,7 +365,7 @@
 				} // right button is clicked
 
 				/* HANDLE KEYBOARD */
-				if(keyboardControl == true){
+				/*if(keyboardControl == true){
 					if(pressedKey == 37){
 						mouse_point.x = game_buttons[0].rectangle.x+80;
 						mouse_point.y = game_buttons[0].rectangle.y+80;
@@ -356,32 +374,30 @@
 						mouse_point.x = game_buttons[1].rectangle.x+80;
 						mouse_point.y = game_buttons[1].rectangle.y+80;
 						mouseClick = true;
-					}/*else if(pressedKey == 32){
-						mouse_x = canvas.width / 2;
-						mouse_y = objects[1].y+80; 
-						mouseClick = true;
-					}*/
-				} // keyboard controls
-
-				/* UPDATE GAME OBJECTS */
-				for(i=0; i<game_objects.length;i++){
-					game_objects[i].update_object();
-				}
+					}//else if(pressedKey == 32){
+						//mouse_x = canvas.width / 2;
+						//mouse_y = objects[1].y+80; 
+						//mouseClick = true;
+					//}
+				} // keyboard controls*/
 
 				/* HANDLE COLLISIONS HERE */
 				var collisionList = collisions.update_collisions(game_objects);
 
-					//game_objects.filter(game_object => game_object.border_collision == true).forEach(object => {
+				game_objects[spaceshipID_AI1].getInput(game_objects, 300, 36);
 
-				game_objects.filter(game_object => game_object.type == "asteroid").forEach(object => {
-					var pc = new Point(game_objects[0].x, game_objects[0].y);
-					var po = new Point(object.x, object.y);
-					if(pointDistance(po, pc)<=300)
-					drawLine(context, po, pc, "red", 2);
-				});
+				var action = agent.act(game_objects[spaceshipID_AI1].input);
 
+				switch(action){
+					case 0: game_objects[spaceshipID_AI1].angle += 5; break;
+					case 1: game_objects[spaceshipID_AI1].angle -= 5;
+							if(game_objects[spaceshipID_AI1].angle <=0)
+								game_objects[0].angle += 360;
+							break;
+					case 2: break;
+				}
 
-				for(i=0; i<collisionList.length;i++){
+				for(i = 0; i < collisionList.length; i++){
 
 					var collision = collisionList[i];
 
@@ -389,7 +405,7 @@
 
 						var index = -1;
 
-						for(var c=0;c<game_objects.length;c++){
+						for(var c = 0; c < game_objects.length; c++){
 							if(game_objects[c].id == collision.id2) index = c;		
 						}
 
@@ -398,9 +414,14 @@
 
 						game_objects[index].destroyed = true;
 
+						agent.learn(-1);
+						score--;
+
 						// reward here
 					}
 				}
+
+				frame++;
 
 				if(debugMode){
 
@@ -408,7 +429,14 @@
 					drawText(context, Math.floor(pointDistance(this.game_objects[i].initial_point, this.game_objects[i].prev_point)), game_objects[i].x-30, game_objects[i].y - 50);*/
 
 					drawText(context, version, 20, 30);
-					drawText(context, objectCount(game_objects, game_area, "asteroid"), 20, 60);
+					drawText(context, frame/(-1*score), 20, 60);
+					//drawText(context, game_objects[spaceshipID_AI1].nearObjects.length, 20, 90);
+
+					//drawText(context, game_objects[spaceshipID_AI1].nearObjects[0].angle, 20, 120);
+
+					//drawLine(context, game_objects[spaceshipID_AI1].prev_point, game_objects[spaceshipID_AI1].nearObjects[0].object.prev_point, "red", 2);
+
+
 					/*drawText(context, mouseClick + " at x: " + Math.round(mouse_point.x) + " y: " + Math.round(mouse_point.y), 20, 60);
 
 					var isFullscreen = (screen.availHeight || screen.height-30) <= window.innerHeight;
@@ -444,17 +472,12 @@
 
 			} // loop_game1 end
 			
-			function generateAngle(p1,p2){
-				var angleDeg = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
-				return -angleDeg;
-			}
-			
 			function generatePoint(){
 				
 				var possiblePointFromTop    = new Point(randomInt(-30, (canvas.width + 30)),-30);
 				var possiblePointFromBottom = new Point(randomInt(-30, (canvas.width + 30)), (canvas.height+30));
 				var possiblePointFromRight 	= new Point((canvas.width+30), randomInt(-30, (canvas.height+30)));	
-				var possiblePointFromLeft	= new Point(-30,  randomInt(-30, (canvas.height+30)));
+				var possiblePointFromLeft	= new Point(-30, randomInt(-30, (canvas.height+30)));
 
 				var randomPointFromOutside = [possiblePointFromTop, possiblePointFromBottom, possiblePointFromRight, possiblePointFromLeft];
 

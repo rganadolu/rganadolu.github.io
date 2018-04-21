@@ -14,22 +14,6 @@ Rectangle.prototype = {
 	}
 }
 
-var SpawnPoint = function(x, y, angle){
-	this.initial_point = new Point(x, y);
-	this.initial_angle = angle; 
-	this.x = randomInt(this.initial_point.x-400, this.initial_point.x+400);
-	this.y = randomInt(this.initial_point.y-400, this.initial_point.y+400);
-	this.angle = randomInt(this.initial_angle-45, this.initial_angle+45);
-}
-
-SpawnPoint.prototype = {
-	update_point: function(){
-		// this.x = randomInt(this.initial_point.x-400, this.initial_point.x+400);
-		// this.y = randomInt(this.initial_point.y-400, this.initial_point.y+400);
-		this.angle = randomInt(this.initial_angle-45, this.initial_angle+45);
-	}
-}
-
 var Sprite = function(image, width, height, center_x = "center", center_y = "center", frame_number = 1, animation_speed = 100, loop) {
 
 	if(center_x == "center") center_x = width/2;
@@ -107,6 +91,12 @@ GameButton.prototype = {
 	}
 }
 
+var NearObject = function(object, distance, angle){
+	this.object = object;
+	this.distance = distance;
+	this.angle = angle;
+}
+
 var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 4){
 	/* object properties */
 	this.id = id;
@@ -124,7 +114,10 @@ var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1,
 	this.hp = 100;
 	this.destroyed = false;
 	this.border_collision = this.type != "asteroid" ? true : false;
-	if(this.type == "spaceship") this.input = [];
+	if(this.type == "spaceship"){
+		this.nearObjects = [];
+		this.input = [];
+	}
 }
 
 GameObject.prototype = {
@@ -134,10 +127,21 @@ GameObject.prototype = {
 	update_object: function(){
 		this.angle %= 360;
 		var _angle = -this.angle * Math.PI / 180; // clockwise radian angle
-		var newvx = Math.cos(_angle) * this.speed, newvy = Math.sin(_angle) * this.speed;
+
+		this.vx = Math.cos(_angle) * this.speed;
+		this.vy = Math.sin(_angle) * this.speed;
+
+		if(this.vy < 0.001 && this.vy > -0.001){
+			this.vy = 0.001;
+		}
+
+		if(this.vx < 0.001 && this.vx > -0.001){
+			this.vx = 0.001;
+		}
+
 		this.prev_point = new Point(this.x, this.y);
-		this.x += newvx; 
-		this.y += newvy;
+		this.x += this.vx; 
+		this.y += this.vy;
 		if(this.hp <= 0) this.destroyed = true;
 		if(this.border_collision == false && pointDistance(this.initial_point, this.prev_point) > 1550){
 			this.destroyed = true;
@@ -147,6 +151,51 @@ GameObject.prototype = {
 	jump_previous: function(){
 		this.x = this.prev_point.x; 
 		this.y = this.prev_point.y;
+	},
+	getInput(game_objects, radius, eyes){
+
+		var eyeAngle = 360 / eyes;
+		this.nearObjects = [];
+		this.input = new Array((eyes*4)+3).fill(0);;
+		game_objects.filter(game_object => game_object.type == "asteroid").forEach(object => {
+			var p1 = new Point(this.x, this.y);
+			var p2 = new Point(object.x, object.y);
+			var distance = pointDistance(p1, p2);
+			if(distance <= radius){
+				var angle = (360 + getAngle(p1, p2)) % 360;
+				angle = angle - (angle % eyeAngle);
+				this.nearObjects.push( new NearObject(object, distance, angle));
+			}
+		});
+
+		this.nearObjects.sort(
+			function(a, b){
+				return b.distance - a.distance
+			});
+
+		for(var i = 0; i < this.nearObjects.length; i++){
+
+			var nearObject = this.nearObjects[i];
+			var object = nearObject.object;
+			var index  = (nearObject.angle / eyeAngle) * 4;
+			var type   = object.type;
+
+			if(type == "asteroid"){
+				type = 10;
+			}//else if(type){}
+
+			this.input[index] = type;
+			this.input[index + 1] = nearObject.distance;
+			this.input[index + 2] = object.vx;
+			this.input[index + 3] = object.vy;
+		}
+
+		index = eyes*4;
+
+		this.input[index + 1] = this.vx;
+		this.input[index + 2] = this.vy;
+		this.input[index + 3] = this.angle;
+
 	}
 }
 
@@ -290,6 +339,11 @@ function objectCount(game_objects, rectangle, objType){
 		if(rectangle.point_check(new Point(object.x, object.y))) count++; 
 	});
 	return count;
+}
+
+function getAngle(p1, p2){
+	var angleDeg = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+	return - angleDeg;
 }
 
 function pointDistance(p1, p2){
