@@ -113,7 +113,7 @@ var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1,
 	this.radius = radius;
 	this.hp = 100;
 	this.destroyed = false;
-	this.border_collision = this.type != "asteroid" ? true : false;
+	this.border_collision = (this.type != "asteroid" && this.type != "plus") ? true : false;
 	if(this.type == "spaceship"){
 		this.nearObjects = [];
 		this.input = [];
@@ -152,19 +152,21 @@ GameObject.prototype = {
 		this.x = this.prev_point.x; 
 		this.y = this.prev_point.y;
 	},
-	getInput(game_objects, radius, eyes){
+	getInput(game_objects, game_area, radius, eyes){
 
 		var eyeAngle = 360 / eyes;
 		this.nearObjects = [];
-		this.input = new Array((eyes*4)+3).fill(1.0);;
-		game_objects.filter(game_object => game_object.type == "asteroid").forEach(object => {
+		this.input = new Array((eyes*4)+3).fill(0);
+		this.rad = radius;
+
+		game_objects.filter(game_object => game_object.type == "asteroid" || game_object.type == "plus").forEach(object => {
 			var p1 = new Point(this.x, this.y);
 			var p2 = new Point(object.x, object.y);
 			var distance = pointDistance(p1, p2);
-			if(distance <= radius){
+			if(distance <= radius && game_area.point_check(object.prev_point)){
 				var angle = (360 + getAngle(p1, p2)) % 360;
 				angle = angle - (angle % eyeAngle);
-				this.nearObjects.push( new NearObject(object, distance, angle));
+				this.nearObjects.push(new NearObject(object, distance, angle));
 			}
 		});
 
@@ -180,22 +182,24 @@ GameObject.prototype = {
 			var index  = (nearObject.angle / eyeAngle) * 4;
 			var type   = object.type;
 
-			if(type == "asteroid"){
-				type = 10;
-			}//else if(type){}
+			this.input[index]     = 1.0;
+			this.input[index + 1] = 1.0;
 
-			this.input[index] = type;
-			this.input[index + 1] = nearObject.distance;
-			this.input[index + 2] = object.vx;
-			this.input[index + 3] = object.vy;
+			if(type == "asteroid"){
+				this.input[index]     = nearObject.distance / this.rad;
+			}else if(type == "plus"){
+				this.input[index + 1] = nearObject.distance / this.rad;
+			}
+			
+			this.input[index + 2] = object.vx / 10;
+			this.input[index + 3] = object.vy / 10;
 		}
 
-		index = eyes * 4;
+		var index = eyes * 4;
 
-		this.input[index] = this.angle;
-		this.input[index + 1] = this.vx;
-		this.input[index + 2] = this.vy;
-
+		this.input[index] 	  = this.angle / 360;
+		this.input[index + 1] = this.vx / 10;
+		this.input[index + 2] = this.vy / 10;
 	}
 }
 
@@ -331,6 +335,34 @@ CollisionArea.prototype = {
 		return collisionList;
 
 	}
+}
+
+var RGA = function(eyes){
+
+	this.eyes = eyes;
+	this.prev_action;
+}
+
+RGA.prototype = {
+
+	getNumStates: function() {
+    	return (this.eyes*4) + 3;
+    },
+
+    getMaxNumActions: function() {
+    	return 3;
+    },
+
+    /*compareActions: function(action) {
+    	if( this.prev_action == null){
+    		this.prev_action = action;
+    		return true;
+    	}
+    	var temp = this.prev_action;
+    	this.prev_action = action;
+    	return temp == action;
+    }*/
+
 }
 
 function objectCount(game_objects, rectangle, objType){
