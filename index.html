@@ -9,8 +9,8 @@
 		<script type="text/javascript" src = "libs/rl.js"></script>
 		<style>
 			html{
-				touch-action: none;
-				-ms-touch-action:none;
+				touch-action1: none;
+				-ms-touch-action1:none;
 			}
 	    	body {
 		        margin: 0px;
@@ -42,12 +42,13 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.4.3 - 23 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.4.4 - 23 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
 			var mouse_point = new Point(0, 0);
-		    var game_area = new Rectangle(0, 0, canvas.width, canvas.height);
+		    var game_area = new Rectangle(0, 0, canvas.width, canvas.height, true);
+		    var training_mode = true;
 
 			var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
                             			window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
@@ -184,8 +185,8 @@
 				canvas.style.width  = width  + "px";
 				canvas.style.height = height + "px";
 
-				ratioW = width   / canvas.width;
-				ratioH = height  / canvas.height;
+				ratioW = width  / canvas.width;
+				ratioH = height / canvas.height;
 
 				rect = canvas.getBoundingClientRect();
 			}
@@ -219,9 +220,9 @@
 			var objectId = 0;
 			var spawn_timer = 0;
 			var spaceshipID_AI1, spaceshipID_AI2, spaceshipID_HU;
-			var env;
-			var spec;
-			var agent;
+			var env1, env2;
+			var spec1, spec2;
+			var agent1, agent2;
 
 			/* GAME LOGIC BEGINS HERE */
 
@@ -248,7 +249,7 @@
 				i = game_objects.length;
 				while (--i >= 0) game_objects[i].update_object();
 
-				if(iteration % 1 == 0){
+				if(iteration % 1 == 0 && !training_mode){
 
 					context.fillStyle = "#44526B";
 					context.fillRect(0, 0, canvas.width, canvas.height);
@@ -267,13 +268,33 @@
 
 					drawText(context, 
 						"iteration: " + iteration + 
-						" good: " + good + 
-						" bad: " + bad + 
-						" ratio: " + (good / bad).toFixed(2), 20, 60);
+						" good: " + game_objects[spaceshipID_AI1].good + 
+						" bad: " + game_objects[spaceshipID_AI1].bad + 
+						" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 60);
 
-					/*var p = getPoint(game_objects[spaceshipID_AI1].x, game_objects[spaceshipID_AI1].y, 200, 180);
+					drawText(context, 
+						"iteration: " + iteration + 
+						" good: " + game_objects[spaceshipID_AI2].good + 
+						" bad: " + game_objects[spaceshipID_AI2].bad + 
+						" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI2].bad).toFixed(2), 20, 90);
 
-					drawLine(context, game_objects[spaceshipID_AI1].prev_point, p, "black", 2);*/
+					drawText(context, spaceshipID_AI1, game_objects[spaceshipID_AI1].x, game_objects[spaceshipID_AI1].y-40);
+					drawText(context, spaceshipID_AI2, game_objects[spaceshipID_AI2].x, game_objects[spaceshipID_AI2].y-40);
+
+				}else if(training_mode){
+					context.fillStyle = "#44526B";
+					context.fillRect(0, 0, 600, 300);
+					drawText(context, 
+						"iteration: " + iteration + 
+						" good: " + game_objects[spaceshipID_AI1].good + 
+						" bad: " + game_objects[spaceshipID_AI1].bad + 
+						" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 60);
+
+					drawText(context, 
+						"iteration: " + iteration + 
+						" good: " + game_objects[spaceshipID_AI2].good + 
+						" bad: " + game_objects[spaceshipID_AI2].bad + 
+						" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI2].bad).toFixed(2), 20, 90);
 				}	
 
 			}
@@ -284,7 +305,7 @@
 				game_buttons.push(
 					new GameButton(
 						[new Sprite(img_empty, 1, 1, 0, 0), new Sprite(img_empty, 1, 1, 0, 0)],
-						 new Rectangle(0, 0, canvas.width, canvas.height)));
+						 new Rectangle(0, 0, canvas.width, canvas.height, false)));
 				loop_welcome();
 			}
 								
@@ -314,9 +335,9 @@
 				/*game_buttons.push(new GameButton(
 					[new Sprite(img_btn_left, 160, 160, 0, 0), new Sprite(img_btn_left2, 160, 160, 0, 0)], 
 					 new Rectangle(80, 500, 160, 160))
-				); // left button
+				);*/ // left button
 
-				game_buttons.push(new GameButton(
+				/*game_buttons.push(new GameButton(
 					[new Sprite(img_btn_right , 160, 160, 0, 0), new Sprite(img_btn_right2, 160, 160, 0, 0)],
 					 new Rectangle(canvas.width - 240, 500, 160, 160))
 				); // right button*/
@@ -326,25 +347,46 @@
 				game_objects.push(
 					new GameObject(objectId++, "spaceship",
 					new Sprite(img_ship, 90, 63, "center", "center", 4, 35),
-					canvas.width / 2, 100, 0, 25, 4)
+					canvas.width / 2, 400, 0, 25, 4)
+				); // spaceship
+
+				spaceshipID_AI2 = objectId;
+
+				game_objects.push(
+					new GameObject(objectId++, "spaceship",
+					new Sprite(img_ship, 90, 63, "center", "center", 4, 35),
+					canvas.width / 2, 400, 0, 25, 4)
 				); // spaceship
 
 				spawn_timer = 0;
 
-				env = new RGA(36);
+				env1 = new RGA(36, 200);
+				env2 = new RGA(36, 200);
 
-				spec = {};
-				spec.update = 'qlearn'; // qlearn | sarsa
-				spec.gamma = 0.85; // discount factor, [0, 1)
-				spec.epsilon = 0.5; // initial epsilon for epsilon-greedy policy, [0, 1)
-				spec.alpha = 0.05; // value function learning rate
-				spec.experience_add_every = 10; // number of time steps before we add another experience to replay memory
-				spec.experience_size = 1000000; // size of experience
-				spec.learning_steps_per_iteration = 25;
-				spec.tderror_clamp = 1.0; // for robustness
-				spec.num_hidden_units = 150; // number of neurons in hidden layer
+				spec1 = {};
+				spec1.update = 'qlearn'; // qlearn | sarsa
+				spec1.gamma = 0.9; // discount factor, [0, 1)
+				spec1.epsilon = 0.4; // initial epsilon for epsilon-greedy policy, [0, 1)
+				spec1.alpha = 0.05; // value function learning rate
+				spec1.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec1.experience_size = 20000; // size of experience
+				spec1.learning_steps_per_iteration = 15;
+				spec1.tderror_clamp = 1.0; // for robustness
+				spec1.num_hidden_units = 100; // number of neurons in hidden layer
 
-				agent = new RL.DQNAgent(env, spec); 
+				spec2 = {};
+				spec2.update = 'qlearn'; // qlearn | sarsa
+				spec2.gamma = 0.9; // discount factor, [0, 1)
+				spec2.epsilon = 0.4; // initial epsilon for epsilon-greedy policy, [0, 1)
+				spec2.alpha = 0.05; // value function learning rate
+				spec2.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec2.experience_size = 20000; // size of experience
+				spec2.learning_steps_per_iteration = 15;
+				spec2.tderror_clamp = 1.0; // for robustness
+				spec2.num_hidden_units = 100; // number of neurons in hidden layer
+
+				agent1 = new RL.DQNAgent(env1, spec1);
+				agent2 = new RL.DQNAgent(env2, spec2);
 
 				//loop_game1();
 
@@ -352,7 +394,6 @@
 
 			}
 
-			var good = 0, bad = 0;
 			var iteration = 0;
 
 			function loop_game1(){
@@ -365,23 +406,23 @@
 
 				if(spawn_timer % 30 == 0){
 
-					var plusAdd 	= 5  - objectCount(game_objects, game_area, "plus");
+					var plusAdd 	= 15  - objectCount(game_objects, game_area, "plus");
 					var asteroidAdd = 15 - objectCount(game_objects, game_area, "asteroid");
 
 					for(var i = 0; i < asteroidAdd; i++){
 						var sprite = new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0);
 						var point  = generatePoint();
 						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
-						var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 22, randomInt(1,3));
+						var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 24, randomInt(1,3));
 						game_objects.push(gameObject); // test asteroids
 					}
 
 
 					for(var i = 0; i < plusAdd; i++){
-						var sprite = new Sprite(img_plus, 64, 64, "center", "center", 1, 0);
+						var sprite = new Sprite(img_plus, 48, 48, "center", "center", 1, 0);
 						var point  = generatePoint();
 						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
-						var gameObject = new GameObject(objectId++, "plus",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 32, randomInt(1,3));
+						var gameObject = new GameObject(objectId++, "plus",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 24, randomInt(1,3));
 						game_objects.push(gameObject); // test plus
 					}
 
@@ -390,17 +431,25 @@
 
 				/* HANDLE MOUSE CLICK & TOUCH */
 				/*if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
-					game_objects[0].angle += 5;
-				} // left button is clicked
+					//game_objects[0].angle += 5;
+				}*/ // left button is clicked
 	
-				if(game_buttons[1].is_clicked(mouseClick, mouse_point)){
+				/*if(game_buttons[1].is_clicked(mouseClick, mouse_point)){
 					game_objects[0].angle -= 5;
 					if(game_objects[0].angle <=0) game_objects[0].angle += 360;
 				} // right button is clicked
 
 				/* HANDLE KEYBOARD */
-				/*if(keyboardControl == true){
-					if(pressedKey == 37){
+				if(keyboardControl == true){
+
+					if(pressedKey == 32){
+						training_mode = !training_mode;
+						//mouse_x = canvas.width / 2;
+						//mouse_y = objects[1].y+80; 
+						//mouseClick = true;
+					}
+
+					/*if(pressedKey == 37){
 						mouse_point.x = game_buttons[0].rectangle.x+80;
 						mouse_point.y = game_buttons[0].rectangle.y+80;
 						mouseClick = true;
@@ -408,31 +457,38 @@
 						mouse_point.x = game_buttons[1].rectangle.x+80;
 						mouse_point.y = game_buttons[1].rectangle.y+80;
 						mouseClick = true;
-					}//else if(pressedKey == 32){
-						//mouse_x = canvas.width / 2;
-						//mouse_y = objects[1].y+80; 
-						//mouseClick = true;
-					//}
+					}*/
 				} // keyboard controls*/
 
 				/* HANDLE COLLISIONS HERE */
 
-				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, 300, 36, context, debugMode);
+				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, env1.radius, env1.eyes, context, !training_mode);
+				game_objects[spaceshipID_AI2].getInput(game_objects, game_area, env2.radius, env2.eyes, context, !training_mode);
 
-				var action = agent.act(game_objects[spaceshipID_AI1].input);
+				var action1 = agent1.act(game_objects[spaceshipID_AI1].input);
+				var action2 = agent2.act(game_objects[spaceshipID_AI2].input);
 
 				var collisionList = collisions.update_collisions(game_objects);
 
-				switch(action){
+				switch(action1){
 					case 0: game_objects[spaceshipID_AI1].angle += 8; break;
 					case 1: game_objects[spaceshipID_AI1].angle -= 8;
-							if(game_objects[spaceshipID_AI1].angle <=0) game_objects[spaceshipID_AI1].angle += 360;
+							if(game_objects[spaceshipID_AI1].angle <= 0) game_objects[spaceshipID_AI1].angle += 360;
 							break;
-					case 2: //sc += 1;
+					case 2: game_objects[spaceshipID_AI1].score += 0.01; 
 							break;
 				}
 
-				//if(env.compareActions(action)) sc += 1;			
+				switch(action2){
+					case 0: game_objects[spaceshipID_AI2].angle += 8; break;
+					case 1: game_objects[spaceshipID_AI2].angle -= 8;
+							if(game_objects[spaceshipID_AI2].angle <= 0) game_objects[spaceshipID_AI2].angle += 360;
+							break;
+					case 2: //game_objects[spaceshipID_AI2].score += 0.01; 
+							break;
+				}
+
+				//if(env1.compareActions(action1)) sc += 1;			
 
 				for(i = 0; i < collisionList.length; i++){
 
@@ -449,28 +505,36 @@
 
 						if(collision.type1 == "asteroid" || collision.type2 == "asteroid"){
 
-							animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 50, false), 
-							game_objects[index2].x, game_objects[index2].y));
+							if(!training_mode){
+								animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 50, false), 
+								game_objects[index2].x, game_objects[index2].y));
+							}
 
-							game_objects[index1].score = -1.0;
-							bad++;
+							game_objects[index1].score -= 1.0;
+							game_objects[index1].bad++;
 							game_objects[index2].destroyed = true;
 
 						}else if(collision.type1 == "plus" || collision.type2 == "plus"){
 
-							game_objects[index1].score = +1.0;
-							good++;
+							game_objects[index1].score += 1.0;
+							game_objects[index1].good++;
 							game_objects[index2].destroyed = true;
 						}
 					}
 				}
 
 				iteration++;
-				agent.learn(game_objects[spaceshipID_AI1].score);
+				agent1.learn(game_objects[spaceshipID_AI1].score);
+				agent2.learn(game_objects[spaceshipID_AI2].score);
 
-				if(agent.epsilon > 0.05){
-					agent.epsilon -= 0.000000376;
-					drawText(context, agent.epsilon, 20, 150);
+				if(agent1.epsilon > 0.05){
+					agent1.epsilon -= 0.00000376;
+					drawText(context, agent1.epsilon, 20, 150);
+				}
+
+				if(agent2.epsilon > 0.05){
+					agent2.epsilon -= 0.00000376;
+					drawText(context, agent2.epsilon, 20, 180);
 				}
 
 				if(debugMode){
@@ -479,6 +543,7 @@
 					drawText(context, Math.floor(pointDistance(this.game_objects[i].initial_point, this.game_objects[i].prev_point)), game_objects[i].x-30, game_objects[i].y - 50);*/
 
 					drawText(context, version, 20, 30);
+
 					/*drawText(context, 
 						"iteration: " + iteration + 
 						" good: " + good + 

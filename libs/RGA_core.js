@@ -4,13 +4,20 @@ var Point = function(x, y){
 	this.x = x; this.y = y;
 }
 
+Point.prototype = {
+	add: function(v) { return new Point(this.x + v.x, this.y + v.y); },
+	length: function() { return Math.sqrt(Math.pow(this.x,2) + Math.pow(this.y,2)); },
+	scale: function(s) { this.x *= s; this.y *= s; },
+	normalize: function() { var d = this.length(); this.scale(1.0/d); }
+}
+
 var Line = function(p1, p2){
 	this.p1 = p1; this.p2 = p2;
 }
 
-var Rectangle = function(x, y, width, height){
+var Rectangle = function(x, y, width, height, bool){
 	this.x = x; this.y = y; this.width = width; this.height = height;
-	this.lines = [
+	if(bool) this.lines = [
 	new Line(new Point(this.x, this.y), new Point(this.x + this.width, this.y)),
 	new Line(new Point(this.x, this.y + this.height), new Point(this.x + this.width, this.y + this.height)),
 	new Line(new Point(this.x, this.y), new Point(this.x, this.y + this.height)),
@@ -121,13 +128,14 @@ GameButton.prototype = {
 	}
 }
 
-var RGA = function(eyes){
+var RGA = function(eyes, radius){
+	this.radius = radius;
 	this.eyes = eyes;
 }
 
 RGA.prototype = {
 	getNumStates: function() {
-    	return (this.eyes*5) + 3;
+    	return (this.eyes*5) + 1;
     },
     getMaxNumActions: function() {
     	return 3;
@@ -149,6 +157,7 @@ var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1,
 	this.y = y;
 	this.initial_point = new Point(this.x, this.y);
 	this.prev_point = this.initial_point;
+	this.curr_point = this.initial_point;
 	this.angle  = angle;
 	this.speed  = speed;
 	this.vx = 0;
@@ -156,12 +165,18 @@ var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1,
 	this.radius = radius;
 	this.hp = 100;
 	this.destroyed = false;
-	this.score = 0;
 	this.border_collision = (this.type != "asteroid" && this.type != "plus") ? true : false;
 	if(this.type == "spaceship"){
 		this.nearObjects = [];
 		this.input = [];
+		this.score = 0;
+		this.good = 0;
+		this.bad = 0;
 	}
+}
+
+var SensedObject = function(type, dist, vx, vy){
+	this.type = type; this.dist = dist; this.vx = vx; this.vy = vy;
 }
 
 GameObject.prototype = {
@@ -187,6 +202,7 @@ GameObject.prototype = {
 		this.prev_point = new Point(this.x, this.y);
 		this.x += this.vx; 
 		this.y += this.vy;
+		this.curr_point = new Point(this.x, this.y);
 		if(this.hp <= 0) this.destroyed = true;
 		if(this.border_collision == false && pointDistance(this.initial_point, this.prev_point) > 1550){
 			this.destroyed = true;
@@ -197,84 +213,94 @@ GameObject.prototype = {
 		this.x = this.prev_point.x; 
 		this.y = this.prev_point.y;
 	},
+	fill: function(arr, n){
+		var l = arr.length;
+		var array = new Array(l*n);
+		for(var i = 0; i<n; i++){
+			var index = i*l ;
+			for(var k=0; k<l; k++)
+				array[index+k] = arr[k];
+		}
+		return array;
+	},
+	add: function(array, arr, index){
+		var l  = arr.length;
+		index *= l;
+		for(var i = 0; i < l; i++){
+			array[index + i] = arr[i];
+		}
+		return array;
+	},
 	getInput(game_objects, game_area, radius, eyes, context, draw){
 
 		var eyeAngle = 360 / eyes;
 		this.nearObjects = [];
-		this.input = new Array((eyes*5)+3);
 		this.rad = radius;
-		
-		for(var i = 0; i < eyes; i++){
-			var index = i*5;
-			this.input[index]	  = 1.0;
-			this.input[index + 1] = 1.0;
-			this.input[index + 2] = 1.0;
-			this.input[index + 3] = 0.0;
-			this.input[index + 4] = 0.0;
-		}
+		this.input = this.fill([1, 1, 1, 0, 0], eyes);
 
-		var pc = new Point(this.x, this.y);
+		var nearAstr = game_objects.filter(game_object => game_object.type == "asteroid" && pointDistance(this.curr_point, game_object.curr_point) < this.rad);
+		var nearPlus = game_objects.filter(game_object => game_object.type == "plus" && pointDistance(this.curr_point, game_object.curr_point) < this.rad);
 
-		for(var i = 0; i < 360; i += eyeAngle){
+		for(var i = 0; i < 360; i += eyeAngle) {
+
 			var po = getPoint(this.x, this.y, this.rad, i);
+			var line = new Line(this.curr_point, po);
+			var list = [];
+
 			if(!game_area.point_check(po)){
-				var line = new Line(pc, po);
 				var intersection = game_area.line_check(line);
-				if(intersection) {
-					if(draw) drawLine(context, pc, intersection, "blue", 2);
-					var index  = (i / eyeAngle) * 5;
-					this.input[index + 2] = pointDistance(pc, intersection) / this.rad;
-				}
+				list.push(new SensedObject(0, pointDistance(this.curr_point, intersection), 0, 0));
 			}
+
+			for(var k= 0; k < nearAstr.length; k++){
+				var obj = nearAstr[k];
+				var intersection = line_point_intersect(line, obj);
+				if(intersection)
+					list.push(new SensedObject(1, pointDistance(this.curr_point, intersection.ip), obj.vx, obj.vy));
+			}
+
+			for(var k= 0; k < nearPlus.length; k++){
+				var obj = nearPlus[k];
+				var intersection = line_point_intersect(line, obj);
+				if(intersection)
+					list.push(new SensedObject(2, pointDistance(this.curr_point, intersection.ip), obj.vx, obj.vy));
+			}
+
+			if(list.length > 0) {
+
+				list.sort(
+					function(a, b){
+						return a.dist - b.dist
+					}
+				);
+
+				var arr, color;
+
+				var s  = list[0].type;
+				var d  = list[0].dist;
+				var vx = list[0].vx / 10;
+				var vy = list[0].vy / 10;
+
+				if(s == 0){
+					arr = [d / this.rad, 1, 1, vx, vy];
+					color = "blue";
+				}else if(s == 1){
+					arr = [1, d / this.rad, 1, vx, vy];
+					color = "red"; 
+				}else if(s == 2){
+					arr = [1, 1, d / this.rad, vx, vy];
+					color = "lime";
+				}
+
+				if(draw) drawLine(context, this.curr_point, getPoint(this.x, this.y, d, i), color, 2);
+
+				this.input = this.add(this.input, arr, i/eyeAngle);	
+			}				
 		}
 
-		game_objects.filter(game_object => game_object.type == "asteroid" || game_object.type == "plus").forEach(object => {
-			var p1 = new Point(this.x, this.y);
-			var p2 = new Point(object.x, object.y);
-			var distance = pointDistance(p1, p2);
-			if(distance <= radius && game_area.point_check_rad(object.prev_point, object.radius)){
-				var angle = (360 + getAngle(p1, p2)) % 360;
-				angle = angle - (angle % eyeAngle);
-				this.nearObjects.push(new NearObject(object, distance, angle));
-				if(draw){
-					var color = object.type == "plus" ? "lime" : "red";
-					drawLine(context, pc, getPoint(this.x, this.y, distance, angle), color, 2, 1);	
-				}
-			}
-		});
-
-		this.nearObjects.sort(
-			function(a, b){
-				return b.distance - a.distance
-			}
-		);
-
-		for(var i = 0; i < this.nearObjects.length; i++){
-
-			var nearObject = this.nearObjects[i];
-			var object = nearObject.object;
-			var index  = (nearObject.angle / eyeAngle) * 5;
-			var type   = object.type;
-
-			if(type == "asteroid"){
-				this.input[index]     = nearObject.distance / this.rad;
-				this.input[index + 1] = 1.0;
-				this.input[index + 2] = 1.0;
-			}else if(type == "plus"){
-				this.input[index + 1] = nearObject.distance / this.rad;
-				this.input[index] = 1.0;
-				this.input[index + 2] = 1.0;
-			}
-			
-			this.input[index + 3] = object.vx / 10;
-			this.input[index + 4] = object.vy / 10;
-		}
-
-		var index = eyes * 5;
-
-		this.input[index] 	  = this.angle / 360;
-		this.input[index + 1] = this.vx / 10;
-		this.input[index + 2] = this.vy / 10;
+		this.input.push(this.angle / 360);
+		//this.input.push(this.vx / 10);
+		//this.input.push(this.vy / 10);
 	}
 }
 
@@ -305,7 +331,7 @@ var CollisionArea = function(width, height, rectangle){
 		for(j = rectangle.y; j<rectangle.height-rectangle.y; j += height){
 			var is_vertical_border   = i == rectangle.x || i + width  >= rectangle.width  - rectangle.x ;
 			var is_horizontal_border = j == rectangle.y || j + height >= rectangle.height - rectangle.y;
-			this.cells.push(new CollisionCell(new Rectangle(i,j, width, height), is_horizontal_border, is_vertical_border));
+			this.cells.push(new CollisionCell(new Rectangle(i,j, width, height, false), is_horizontal_border, is_vertical_border));
 		}
 	}
 
@@ -377,7 +403,7 @@ CollisionArea.prototype = {
 					(object.y - object.radius <= this.rectangle.y || object.y + object.radius >= this.rectangle.height)){
 				 	object.jump_previous();
 				 	object.angle += 2 * getHorizontalAngle(object.angle);
-				 	object.score = -1.0;
+				 	object.score -= 2;
 				}
 			});
 		});
@@ -388,7 +414,7 @@ CollisionArea.prototype = {
 					(object.x - object.radius <= this.rectangle.x || object.x + object.radius  >= this.rectangle.width)){
 					object.jump_previous();
 					object.angle += 2 * getVerticalAngle(object.angle);
-					object.score = -0.5;
+					object.score -= 1;
 				}	
 			});
 		});
@@ -443,6 +469,29 @@ function getHorizontalAngle(angle){
 	}else if(angle <= 270){ return - angle + 180;
 	}else{ 				    return 360 - angle;
 	}
+}
+
+function line_point_intersect(l, obj) {
+		var v = new Point(l.p2.y-l.p1.y,-(l.p2.x-l.p1.x)); // perpendicular vector
+		var d = Math.abs((l.p2.x-l.p1.x)*(l.p1.y-obj.curr_point.y)-(l.p1.x-obj.curr_point.x)*(l.p2.y-l.p1.y));
+
+		d = d / v.length();
+		if(d > obj.radius) { return false; }
+		  
+		v.normalize();
+		v.scale(d);
+		var ip = obj.curr_point.add(v);
+		if(Math.abs(l.p2.x-l.p1.x) > Math.abs(l.p2.y-l.p1.y)) {
+			var ua = (ip.x - l.p1.x) / (l.p2.x - l.p1.x);
+		}else{
+			var ua = (ip.y - l.p1.y) / (l.p2.y - l.p1.y);
+		}
+
+		if(ua > 0.0 && ua < 1.0){
+			return {ua:ua, ip:ip};
+		}
+
+		return false;
 }
 
 function getVerticalAngle(angle){
