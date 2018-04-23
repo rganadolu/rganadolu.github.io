@@ -42,7 +42,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.4.2 - 22 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.4.3 - 23 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -270,6 +270,10 @@
 						" good: " + good + 
 						" bad: " + bad + 
 						" ratio: " + (good / bad).toFixed(2), 20, 60);
+
+					/*var p = getPoint(game_objects[spaceshipID_AI1].x, game_objects[spaceshipID_AI1].y, 200, 180);
+
+					drawLine(context, game_objects[spaceshipID_AI1].prev_point, p, "black", 2);*/
 				}	
 
 			}
@@ -331,14 +335,14 @@
 
 				spec = {};
 				spec.update = 'qlearn'; // qlearn | sarsa
-				spec.gamma = 0.5; // discount factor, [0, 1)
-				spec.epsilon = 0.05; // initial epsilon for epsilon-greedy policy, [0, 1)
+				spec.gamma = 0.85; // discount factor, [0, 1)
+				spec.epsilon = 0.5; // initial epsilon for epsilon-greedy policy, [0, 1)
 				spec.alpha = 0.05; // value function learning rate
-				spec.experience_add_every = 8; // number of time steps before we add another experience to replay memory
+				spec.experience_add_every = 10; // number of time steps before we add another experience to replay memory
 				spec.experience_size = 1000000; // size of experience
 				spec.learning_steps_per_iteration = 25;
 				spec.tderror_clamp = 1.0; // for robustness
-				spec.num_hidden_units = 120; // number of neurons in hidden layer
+				spec.num_hidden_units = 150; // number of neurons in hidden layer
 
 				agent = new RL.DQNAgent(env, spec); 
 
@@ -413,13 +417,11 @@
 
 				/* HANDLE COLLISIONS HERE */
 
-				var sc = 0;
-
-				var collisionList = collisions.update_collisions(game_objects);
-
-				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, 300, 36);
+				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, 300, 36, context, debugMode);
 
 				var action = agent.act(game_objects[spaceshipID_AI1].input);
+
+				var collisionList = collisions.update_collisions(game_objects);
 
 				switch(action){
 					case 0: game_objects[spaceshipID_AI1].angle += 8; break;
@@ -436,10 +438,11 @@
 
 					var collision = collisionList[i];
 
-					var index = -1;
+					var index1 = -1, index2 = -1;
 
 					for(var c = 0; c < game_objects.length; c++){
-						if(game_objects[c].id == collision.id2) index = c;		
+						if(game_objects[c].id == collision.id1) index1 = c;	
+						if(game_objects[c].id == collision.id2) index2 = c;		
 					}
 
 					if(collision.type1 == "spaceship" || collision.type2 == "spaceship") {
@@ -447,23 +450,23 @@
 						if(collision.type1 == "asteroid" || collision.type2 == "asteroid"){
 
 							animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 50, false), 
-							game_objects[index].x, game_objects[index].y));
+							game_objects[index2].x, game_objects[index2].y));
 
-							sc -= 1.0;
+							game_objects[index1].score = -1.0;
 							bad++;
-							game_objects[index].destroyed = true;
+							game_objects[index2].destroyed = true;
 
 						}else if(collision.type1 == "plus" || collision.type2 == "plus"){
 
-							sc += 1.0;
+							game_objects[index1].score = +1.0;
 							good++;
-							game_objects[index].destroyed = true;
+							game_objects[index2].destroyed = true;
 						}
 					}
 				}
 
 				iteration++;
-				agent.learn(sc);
+				agent.learn(game_objects[spaceshipID_AI1].score);
 
 				if(agent.epsilon > 0.05){
 					agent.epsilon -= 0.000000376;
@@ -482,10 +485,6 @@
 						" bad: " + bad + 
 						" ratio: " + Math.round(good/bad), 20, 60);
 					drawText(context,game_objects[spaceshipID_AI1].nearObjects.length, 20, 90);*/
-
-					for(var i=0; i < game_objects[spaceshipID_AI1].nearObjects.length; i++){
-						drawLine(context, game_objects[spaceshipID_AI1].prev_point, game_objects[spaceshipID_AI1].nearObjects[i].object.prev_point,"red", 2, 1);	
-					}
 
 					/*if(!isMobile){
 						if(frame % 60 == 0){
