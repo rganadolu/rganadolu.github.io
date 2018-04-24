@@ -42,7 +42,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.4.5 - 24 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.4.5.1 - 24 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -297,6 +297,10 @@
 						" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI2].bad).toFixed(2), 20, 90);*/
 				}	
 
+				if(iteration != 0 && iteration % 5000 == 0){
+					download("iteration" + iteration + ".json", JSON.stringify(agent1.toJSON()));
+				}
+
 			}
 
 			function load_welcome(){
@@ -372,7 +376,7 @@
 				spec1.experience_size = 20000; // size of experience
 				spec1.learning_steps_per_iteration = 15;
 				spec1.tderror_clamp = 1.0; // for robustness
-				spec1.num_hidden_units = 100; // number of neurons in hidden layer
+				spec1.num_hidden_units = 120; // number of neurons in hidden layer
 
 				/*spec2 = {};
 				spec2.update = 'qlearn'; // qlearn | sarsa
@@ -627,7 +631,20 @@
 
 				return randomPointFromOutside[randomInt(0,3)];
 			}
-			
+
+			function download(filename, text) {
+				var element = document.createElement('a');
+				element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+				element.setAttribute('download', filename);
+
+				element.style.display = 'none';
+				document.body.appendChild(element);
+
+				element.click();
+
+				document.body.removeChild(element);
+			}
+		
 		</script>
 
 	</body>
