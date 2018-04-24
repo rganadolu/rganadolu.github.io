@@ -128,17 +128,18 @@ GameButton.prototype = {
 	}
 }
 
-var RGA = function(eyes, radius){
+var RGA = function(eyes, radius, output){
 	this.radius = radius;
 	this.eyes = eyes;
+	this.output = output;
 }
 
 RGA.prototype = {
 	getNumStates: function() {
-    	return (this.eyes*5) + 1;
+    	return (this.eyes*5) + 2;
     },
     getMaxNumActions: function() {
-    	return 3;
+    	return this.output;
     },
 }
 
@@ -298,9 +299,9 @@ GameObject.prototype = {
 			}				
 		}
 
-		this.input.push(this.angle / 360);
-		//this.input.push(this.vx / 10);
-		//this.input.push(this.vy / 10);
+		//this.input.push(this.angle / 360);
+		this.input.push(this.vx / 10);
+		this.input.push(this.vy / 10);
 	}
 }
 
@@ -403,7 +404,7 @@ CollisionArea.prototype = {
 					(object.y - object.radius <= this.rectangle.y || object.y + object.radius >= this.rectangle.height)){
 				 	object.jump_previous();
 				 	object.angle += 2 * getHorizontalAngle(object.angle);
-				 	object.score -= 2;
+				 	//object.score -= 5.0;
 				}
 			});
 		});
@@ -414,7 +415,7 @@ CollisionArea.prototype = {
 					(object.x - object.radius <= this.rectangle.x || object.x + object.radius  >= this.rectangle.width)){
 					object.jump_previous();
 					object.angle += 2 * getVerticalAngle(object.angle);
-					object.score -= 1;
+					//object.score -= 5.0;
 				}	
 			});
 		});
