@@ -136,7 +136,7 @@ var RGA = function(eyes, radius, output){
 
 RGA.prototype = {
 	getNumStates: function() {
-    	return (this.eyes*5) + 2;
+    	return (this.eyes*5) + 3;
     },
     getMaxNumActions: function() {
     	return this.output;
@@ -299,7 +299,7 @@ GameObject.prototype = {
 			}				
 		}
 
-		//this.input.push(this.angle / 360);
+		this.input.push(this.angle / 360);
 		this.input.push(this.vx / 10);
 		this.input.push(this.vy / 10);
 	}
