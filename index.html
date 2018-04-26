@@ -364,15 +364,21 @@
 				//loop_game1();
 
 				setInterval(loop_game1, 0);
+				setInterval(measure, 1000);
 
 			}
 
 			var iteration = 0;
+			var startI = 0;
+			var endI = 0;
+
+			function measure(){
+				endI = iteration;
+				average = endI - startI;
+				startI = iteration;
+			}
 
 			function loop_game1(){
-
-				var t0 = performance.now();
-
 				//request_id = requestAnimationFrame(loop_game1);
 
 				updateObjects(game_objects, animations, game_buttons);
@@ -519,13 +525,9 @@
 				if(debugMode){
 
 					drawText(context, version, 20, 30);
-					drawText(context, "fps: " + 1000/average, 20, 90);			
+					drawText(context, "fps: " + average, 20, 90);			
 
 				} // debug mode end
-
-				var t1 = performance.now();
-				all += t1-t0; 
-				average = all/iteration;
 
 			} // loop_game1 end
 			
