@@ -136,7 +136,7 @@ var RGA = function(eyes, radius, output){
 
 RGA.prototype = {
 	getNumStates: function() {
-    	return (this.eyes*5) + 3;
+    	return (this.eyes*5) + 2;
     },
     getMaxNumActions: function() {
     	return this.output;

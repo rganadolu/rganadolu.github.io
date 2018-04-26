@@ -7,7 +7,6 @@
 		<meta name="viewport" content="width=device-width,minimum-scale=1,maximum-scale=1,user-scalable=no,minimal-ui">
 		<script type="text/javascript" src = "libs/RGA_core.js"></script>
 		<script type="text/javascript" src = "libs/rl.js"></script>
-		 <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
 		<style>
 			html{
 				touch-action1: none;
@@ -51,6 +50,8 @@
 		    var game_area = new Rectangle(0, 0, canvas.width, canvas.height, true);
 		    var training_mode = false;
 		    var save_at = 500000;
+		    var average = 0;
+		    var all = 0;
 
 			var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
                             			window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
@@ -252,7 +253,7 @@
 				i = game_objects.length;
 				while (--i >= 0) game_objects[i].update_object();
 
-				if(iteration % 1 == 0 && !training_mode){
+				if(!training_mode){
 
 					context.fillStyle = "#44526B";
 					context.fillRect(0, 0, canvas.width, canvas.height);
@@ -286,9 +287,9 @@
 
 				}	
 
-				if(iteration != 0 && iteration % save_at == 0){
+				/*if(iteration != 0 && iteration % save_at == 0){
 					download("iteration" + iteration + ".json", JSON.stringify(agent1.toJSON()));
-				}
+				}*/
 
 			}
 
@@ -345,7 +346,7 @@
 
 				spawn_timer = 0;
 
-				env1 = new RGA(36, 200, 5);
+				env1 = new RGA(30, 200, 5);
 
 				spec1 = {};
 				spec1.update = 'qlearn'; // qlearn | sarsa
@@ -353,22 +354,24 @@
 				spec1.epsilon = 0.99; // initial epsilon for epsilon-greedy policy, [0, 1)
 				spec1.alpha = 0.1; // value function learning rate
 				spec1.experience_add_every = 5; // number of time steps before we add another experience to replay memory
-				spec1.experience_size = 20000; // size of experience
+				spec1.experience_size = 10000; // size of experience
 				spec1.learning_steps_per_iteration = 15;
 				spec1.tderror_clamp = 1.0; // for robustness
-				spec1.num_hidden_units = 120; // number of neurons in hidden layer
+				spec1.num_hidden_units = 90; // number of neurons in hidden layer
 
 				agent1 = new RL.DQNAgent(env1, spec1);
 
 				//loop_game1();
 
-				setInterval(loop_game1, 1);
+				setInterval(loop_game1, 0);
 
 			}
 
 			var iteration = 0;
 
 			function loop_game1(){
+
+				var t0 = performance.now();
 
 				//request_id = requestAnimationFrame(loop_game1);
 
@@ -515,9 +518,14 @@
 
 				if(debugMode){
 
-					drawText(context, version, 20, 30);		
+					drawText(context, version, 20, 30);
+					drawText(context, "fps: " + 1000/average, 20, 90);			
 
 				} // debug mode end
+
+				var t1 = performance.now();
+				all += t1-t0; 
+				average = all/iteration;
 
 			} // loop_game1 end
 			
