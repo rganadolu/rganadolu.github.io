@@ -7,6 +7,7 @@
 		<meta name="viewport" content="width=device-width,minimum-scale=1,maximum-scale=1,user-scalable=no,minimal-ui">
 		<script type="text/javascript" src = "libs/RGA_core.js"></script>
 		<script type="text/javascript" src = "libs/rl.js"></script>
+		 <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
 		<style>
 			html{
 				touch-action1: none;
@@ -42,13 +43,14 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.4.5.1 - 24 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.4.6 - 26 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
 			var mouse_point = new Point(0, 0);
 		    var game_area = new Rectangle(0, 0, canvas.width, canvas.height, true);
 		    var training_mode = false;
+		    var save_at = 500000;
 
 			var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
                             			window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
@@ -231,6 +233,7 @@
     			document.body.scroll = "no"; // disable scrollbar also for ie browsers :(
 				resize();
 				load_welcome();
+				alert("saves at every " + save_at + " iteration");
 			}
 
 			function updateObjects(game_objects, animations, game_buttons){
@@ -272,15 +275,6 @@
 						" bad: " + game_objects[spaceshipID_AI1].bad + 
 						" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 60);
 
-					/*drawText(context, 
-						"iteration: " + iteration + 
-						" good: " + game_objects[spaceshipID_AI2].good + 
-						" bad: " + game_objects[spaceshipID_AI2].bad + 
-						" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI2].bad).toFixed(2), 20, 90);
-
-					drawText(context, spaceshipID_AI1, game_objects[spaceshipID_AI1].x, game_objects[spaceshipID_AI1].y-40);
-					drawText(context, spaceshipID_AI2, game_objects[spaceshipID_AI2].x, game_objects[spaceshipID_AI2].y-40);*/
-
 				}else if(training_mode){
 					context.fillStyle = "#44526B";
 					context.fillRect(0, 0, 600, 300);
@@ -290,14 +284,9 @@
 						" bad: " + game_objects[spaceshipID_AI1].bad + 
 						" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 60);
 
-					/*drawText(context, 
-						"iteration: " + iteration + 
-						" good: " + game_objects[spaceshipID_AI2].good + 
-						" bad: " + game_objects[spaceshipID_AI2].bad + 
-						" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI2].bad).toFixed(2), 20, 90);*/
 				}	
 
-				if(iteration != 0 && iteration % 5000 == 0){
+				if(iteration != 0 && iteration % save_at == 0){
 					download("iteration" + iteration + ".json", JSON.stringify(agent1.toJSON()));
 				}
 
@@ -354,43 +343,22 @@
 					canvas.width / 2, canvas.height / 2, 0, 25, 4)
 				); // spaceship
 
-				/*spaceshipID_AI2 = objectId;
-
-				game_objects.push(
-					new GameObject(objectId++, "spaceship",
-					new Sprite(img_ship, 90, 63, "center", "center", 4, 35),
-					canvas.width / 2, 400, 0, 25, 4)
-				); // spaceship*/
-
 				spawn_timer = 0;
 
-				env1 = new RGA(36, 200, 3);
-				//env2 = new RGA(36, 200);
+				env1 = new RGA(36, 200, 5);
 
 				spec1 = {};
 				spec1.update = 'qlearn'; // qlearn | sarsa
 				spec1.gamma = 0.9; // discount factor, [0, 1)
 				spec1.epsilon = 0.99; // initial epsilon for epsilon-greedy policy, [0, 1)
-				spec1.alpha = 0.05; // value function learning rate
+				spec1.alpha = 0.1; // value function learning rate
 				spec1.experience_add_every = 5; // number of time steps before we add another experience to replay memory
 				spec1.experience_size = 20000; // size of experience
 				spec1.learning_steps_per_iteration = 15;
 				spec1.tderror_clamp = 1.0; // for robustness
 				spec1.num_hidden_units = 120; // number of neurons in hidden layer
 
-				/*spec2 = {};
-				spec2.update = 'qlearn'; // qlearn | sarsa
-				spec2.gamma = 0.9; // discount factor, [0, 1)
-				spec2.epsilon = 0.3; // initial epsilon for epsilon-greedy policy, [0, 1)
-				spec2.alpha = 0.1; // value function learning rate
-				spec2.experience_add_every = 5; // number of time steps before we add another experience to replay memory
-				spec2.experience_size = 20000; // size of experience
-				spec2.learning_steps_per_iteration = 15;
-				spec2.tderror_clamp = 1.0; // for robustness
-				spec2.num_hidden_units = 100; // number of neurons in hidden layer*/
-
 				agent1 = new RL.DQNAgent(env1, spec1);
-				//agent2 = new RL.DQNAgent(env2, spec2);
 
 				//loop_game1();
 
@@ -410,8 +378,8 @@
 
 				if(spawn_timer % 30 == 0){
 
-					var plusAdd 	= 12  - objectCount(game_objects, game_area, "plus");
-					var asteroidAdd = 12 - objectCount(game_objects, game_area, "asteroid");
+					var plusAdd 	= 10 - objectCount(game_objects, game_area, "plus");
+					var asteroidAdd = 10 - objectCount(game_objects, game_area, "asteroid");
 
 					for(var i = 0; i < asteroidAdd; i++){
 						var sprite = new Sprite(img_asteroid, 64, 64, "center", "center", 1, 0);
@@ -467,10 +435,8 @@
 				/* HANDLE COLLISIONS HERE */
 
 				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, env1.radius, env1.eyes, context, !training_mode);
-				//game_objects[spaceshipID_AI2].getInput(game_objects, game_area, env2.radius, env2.eyes, context, !training_mode);
 
 				var action1 = agent1.act(game_objects[spaceshipID_AI1].input);
-				//var action2 = agent2.act(game_objects[spaceshipID_AI2].input);
 
 				var collisionList = collisions.update_collisions(game_objects);
 
@@ -480,7 +446,11 @@
 					case 1: game_objects[spaceshipID_AI1].angle -= 10;
 							if(game_objects[spaceshipID_AI1].angle <= 0) game_objects[spaceshipID_AI1].angle += 360;
 							break;
-					case 2: break;
+					case 2: if(game_objects[spaceshipID_AI1].speed > 0) game_objects[spaceshipID_AI1].speed -= 0.2;
+							break;
+					case 3: if(game_objects[spaceshipID_AI1].speed < 4) game_objects[spaceshipID_AI1].speed += 0.2;
+							break;
+					case 4: break;
 				}
 
 				/*switch(action2){
@@ -538,83 +508,14 @@
 				//if(game_objects[spaceshipID_AI1].score<0) console.log(game_objects[spaceshipID_AI1].score);
 
 				if(agent1.epsilon > 0.05){
-					agent1.epsilon -= 0.000001;
+					agent1.epsilon -= 0.0000003;
 					drawText(context, agent1.epsilon, 20, 150);
 				}
 
-				/*if(agent2.epsilon > 0.05){
-					agent2.epsilon -= 0.00000376;
-					drawText(context, agent2.epsilon, 20, 180);
-				}*/
 
 				if(debugMode){
 
-					/*for(i =0;i<game_objects.length;i++)
-					drawText(context, Math.floor(pointDistance(this.game_objects[i].initial_point, this.game_objects[i].prev_point)), game_objects[i].x-30, game_objects[i].y - 50);*/
-
-					drawText(context, version, 20, 30);
-
-					/*drawText(context, 
-						"iteration: " + iteration + 
-						" good: " + good + 
-						" bad: " + bad + 
-						" ratio: " + Math.round(good/bad), 20, 60);
-					drawText(context,game_objects[spaceshipID_AI1].nearObjects.length, 20, 90);*/
-
-					/*if(!isMobile){
-						if(frame % 60 == 0){
-							pi.push(score);
-							pi2.push(frame/score);
-						}
-
-						for(var i=0;i<pi.length;i++){
-							drawLine(context, new Point(i,canvas.height), new Point(i,canvas.height + pi[i]),"white", 2, 0.5);
-							drawLine(context, new Point(i,canvas.height), new Point(i,canvas.height + pi2[i]),"black", 2, 0.5);
-						}
-
-						if(i==canvas.width) {
-							pi  = [];
-							pi2 = [];
-						}
-					}*/
-
-					//drawText(context, game_objects[spaceshipID_AI1].nearObjects.length, 20, 90);
-
-					//drawText(context, game_objects[spaceshipID_AI1].nearObjects[0].angle, 20, 120);
-
-					//drawLine(context, game_objects[spaceshipID_AI1].prev_point, game_objects[spaceshipID_AI1].nearObjects[0].object.prev_point, "red", 2);
-
-
-					/*drawText(context, mouseClick + " at x: " + Math.round(mouse_point.x) + " y: " + Math.round(mouse_point.y), 20, 60);
-
-					var isFullscreen = (screen.availHeight || screen.height-30) <= window.innerHeight;
-					drawText(context, "fullscreen: " + isFullscreen, 20, 120);
-					
-					if(isMobile){
-						drawText(context, "following: " + id, canvas.width-200, 30);
-						if(touchess != undefined){
-							for(i=0;i<touchess.length;i++){
-								drawText(context, touchess[i].identifier, canvas.width-300, 30 + i*30);
-							}
-						}
-					}else{
-						drawText(context, keys, 20, 90); 
-					}*/
-
-					/*drawCircle(context, 0.1, game_objects[0].prev_point, 250, "lime", "green");
-
-					for(i = game_area.x; i<game_area.width; i += collisions.width){
-						for(j = game_area.y; j<game_area.height; j += collisions.height){
-							drawLine(context, i, game_area.y, i,game_area.height, "lime", 2); // vertical lines
-							drawLine(context, game_area.x, j, game_area.width, j, "lime", 2); // horizontal lines
-						}
-					}
-
-					
-					for(i=0; i<collisions.length; i++){
-						drawText(context, collisions.cells[i].cell_objects.length, collisions.cells[i].rectangle.x + 20, collisions.cells[i].rectangle.y +60);
-					}*/
-
+					drawText(context, version, 20, 30);		
 
 				} // debug mode end
 
@@ -636,15 +537,12 @@
 				var element = document.createElement('a');
 				element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
 				element.setAttribute('download', filename);
-
 				element.style.display = 'none';
 				document.body.appendChild(element);
-
 				element.click();
-
 				document.body.removeChild(element);
 			}
-		
+	
 		</script>
 
 	</body>
