@@ -189,15 +189,9 @@ GameObject.prototype = {
 		this.angle %= 360;
 		var _angle = -this.angle * Math.PI / 180; // clockwise radian angle
 
-		this.vx = Math.cos(_angle) * this.speed;
-		this.vy = Math.sin(_angle) * this.speed;
-
-		if(this.vy < 0.001 && this.vy > -0.001){
-			this.vy = 0.001;
-		}
-
-		if(this.vx < 0.001 && this.vx > -0.001){
-			this.vx = 0.001;
+		if(this.type != "spaceship"){
+			this.vx = Math.cos(_angle) * this.speed;
+			this.vy = Math.sin(_angle) * this.speed;
 		}
 
 		this.prev_point = new Point(this.x, this.y);
@@ -302,14 +296,14 @@ GameObject.prototype = {
 			}
 
 			switch(s){
-				case -1: this.score += 0.01;
+				/*case -1: this.score += 0.01;
+						 break;*/
+				case  0: this.score -= (radius/d)/1000;
 						 break;
-				case  0: this.score += (d/radius)/100;
-						 break;
-				case  1: this.score += (d/radius)/100;
+				/*case  1: this.score += (d/radius)/100;
 						 break;
 				case  2: this.score += (d/radius)/10;
-						 break;
+						 break;*/
 			}
 
 			if(draw) drawLine(context, this.curr_point, getPoint(this.x, this.y, d, i), color, 2);
@@ -419,7 +413,8 @@ CollisionArea.prototype = {
 				if( object.border_collision == true && 
 					(object.y - object.radius <= this.rectangle.y || object.y + object.radius >= this.rectangle.height)){
 				 	object.jump_previous();
-				 	object.angle += 2 * getHorizontalAngle(object.angle);
+				 	//object.angle += 2 * getHorizontalAngle(object.angle);
+				 	object.vx = 0; object.vy = 0;
 				 	//object.score -= 5.0;
 				}
 			});
@@ -430,7 +425,8 @@ CollisionArea.prototype = {
 				if( object.border_collision == true && 
 					(object.x - object.radius <= this.rectangle.x || object.x + object.radius  >= this.rectangle.width)){
 					object.jump_previous();
-					object.angle += 2 * getVerticalAngle(object.angle);
+					//object.angle += 2 * getVerticalAngle(object.angle);
+					object.vx = 0; object.vy = 0;
 					//object.score -= 5.0;
 				}	
 			});
