@@ -354,9 +354,9 @@
 				spec1.update = 'qlearn'; // qlearn | sarsa
 				spec1.gamma = 0.9; // discount factor, [0, 1)
 				spec1.epsilon = 0.99; // initial epsilon for epsilon-greedy policy, [0, 1)
-				spec1.alpha = 0.01; // value function learning rate
-				spec1.experience_add_every = 10; // number of time steps before we add another experience to replay memory
-				spec1.experience_size = 10000; // size of experience
+				spec1.alpha = 0.05; // value function learning rate
+				spec1.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec1.experience_size = 20000; // size of experience
 				spec1.learning_steps_per_iteration = 15;
 				spec1.tderror_clamp = 1.0; // for robustness
 				spec1.num_hidden_units = 100; // number of neurons in hidden layer
@@ -435,6 +435,14 @@
 
 					if(pressedKey == 32){
 						training_mode = !training_mode;
+						pressedKey = 0;
+						//mouse_x = canvas.width / 2;
+						//mouse_y = objects[1].y+80; 
+						//mouseClick = true;
+					}
+
+					if(pressedKey == 37){
+						download("iteration" + iteration + ".json", JSON.stringify(agent1.toJSON()));
 						pressedKey = 0;
 						//mouse_x = canvas.width / 2;
 						//mouse_y = objects[1].y+80; 

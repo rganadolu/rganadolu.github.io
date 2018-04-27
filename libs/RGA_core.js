@@ -308,11 +308,9 @@ GameObject.prototype = {
 						 break;
 				case  1: this.score += (d/radius)/100;
 						 break;
-				case  2: this.score += 0.02;
+				case  2: this.score += (d/radius)/10;
 						 break;
 			}
-
-			//this.input[(i/eyeAngle)*5] == 1 ? this.score += 1 / eyes : this.score += (d / this.rad) / eyes; 		
 
 			if(draw) drawLine(context, this.curr_point, getPoint(this.x, this.y, d, i), color, 2);
 		}
