@@ -256,8 +256,9 @@ GameObject.prototype = {
 			for(var k= 0; k < nearAstr.length; k++){
 				var obj = nearAstr[k];
 				var intersection = line_point_intersect(line, obj);
-				if(intersection)
+				if(intersection){
 					list.push(new SensedObject(1, pointDistance(this.curr_point, intersection.ip), obj.vx, obj.vy));
+				}
 			}
 
 			for(var k= 0; k < nearPlus.length; k++){
@@ -267,6 +268,8 @@ GameObject.prototype = {
 					list.push(new SensedObject(2, pointDistance(this.curr_point, intersection.ip), obj.vx, obj.vy));
 			}
 
+			var s = -1, d, vx, vy, color;
+
 			if(list.length > 0) {
 
 				list.sort(
@@ -275,31 +278,46 @@ GameObject.prototype = {
 					}
 				);
 
-				var arr, color;
+				var arr;
 
-				var s  = list[0].type;
-				var d  = list[0].dist;
-				var vx = list[0].vx / 10;
-				var vy = list[0].vy / 10;
+				s  = list[0].type;
+				d  = list[0].dist;
+				vx = list[0].vx / 10;
+				vy = list[0].vy / 10;
 
 				if(s == 0){
 					arr = [d / this.rad, 1, 1, vx, vy];
 					color = "blue";
 				}else if(s == 1){
 					arr = [1, d / this.rad, 1, vx, vy];
-					color = "red"; 
+					color = "red";
 				}else if(s == 2){
 					arr = [1, 1, d / this.rad, vx, vy];
 					color = "lime";
-				}
-
-				if(draw) drawLine(context, this.curr_point, getPoint(this.x, this.y, d, i), color, 2);
-
+				}	
 				this.input = this.add(this.input, arr, i/eyeAngle);	
-			}				
+			}else{
+				color = "gray";
+				d = this.rad;
+			}
+
+			switch(s){
+				case -1: this.score += 0.01;
+						 break;
+				case  0: this.score += (d/radius)/100;
+						 break;
+				case  1: this.score += (d/radius)/100;
+						 break;
+				case  2: this.score += 0.02;
+						 break;
+			}
+
+			//this.input[(i/eyeAngle)*5] == 1 ? this.score += 1 / eyes : this.score += (d / this.rad) / eyes; 		
+
+			if(draw) drawLine(context, this.curr_point, getPoint(this.x, this.y, d, i), color, 2);
 		}
 
-		this.input.push(this.angle / 360);
+		//this.input.push(this.angle / 360);
 		this.input.push(this.vx / 10);
 		this.input.push(this.vy / 10);
 	}

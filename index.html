@@ -7,6 +7,7 @@
 		<meta name="viewport" content="width=device-width,minimum-scale=1,maximum-scale=1,user-scalable=no,minimal-ui">
 		<script type="text/javascript" src = "libs/RGA_core.js"></script>
 		<script type="text/javascript" src = "libs/rl.js"></script>
+		<script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
 		<style>
 			html{
 				touch-action1: none;
@@ -42,7 +43,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.4.6 - 26 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.4.7 - 27 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -52,6 +53,7 @@
 		    var save_at = 500000;
 		    var average = 0;
 		    var all = 0;
+		    var using_trained = false;
 
 			var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
                             			window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
@@ -352,20 +354,28 @@
 				spec1.update = 'qlearn'; // qlearn | sarsa
 				spec1.gamma = 0.9; // discount factor, [0, 1)
 				spec1.epsilon = 0.99; // initial epsilon for epsilon-greedy policy, [0, 1)
-				spec1.alpha = 0.1; // value function learning rate
-				spec1.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec1.alpha = 0.01; // value function learning rate
+				spec1.experience_add_every = 10; // number of time steps before we add another experience to replay memory
 				spec1.experience_size = 10000; // size of experience
 				spec1.learning_steps_per_iteration = 15;
 				spec1.tderror_clamp = 1.0; // for robustness
-				spec1.num_hidden_units = 90; // number of neurons in hidden layer
+				spec1.num_hidden_units = 100; // number of neurons in hidden layer
 
 				agent1 = new RL.DQNAgent(env1, spec1);
+
+				/*$.getJSON("https://rganadolu.github.io/assets/iteration500000.json", function(data , textStatus) {
+					if(textStatus=="success") alert("loaded json file");	
+			        agent1.fromJSON(data);
+			        // set epsilon to be much lower for more optimal behavior
+			        agent1.epsilon = 0;
+			        agent1.alpha = 0.01;	        
+			        using_trained = true;
+			    });*/
 
 				//loop_game1();
 
 				setInterval(loop_game1, 0);
 				setInterval(measure, 1000);
-
 			}
 
 			var iteration = 0;
@@ -443,11 +453,13 @@
 
 				/* HANDLE COLLISIONS HERE */
 
+				var collisionList = collisions.update_collisions(game_objects);
+
+				/* AI STUFF HERE */
+
 				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, env1.radius, env1.eyes, context, !training_mode);
 
 				var action1 = agent1.act(game_objects[spaceshipID_AI1].input);
-
-				var collisionList = collisions.update_collisions(game_objects);
 
 				switch(action1){
 					case 0: game_objects[spaceshipID_AI1].angle += 10; 
@@ -455,27 +467,12 @@
 					case 1: game_objects[spaceshipID_AI1].angle -= 10;
 							if(game_objects[spaceshipID_AI1].angle <= 0) game_objects[spaceshipID_AI1].angle += 360;
 							break;
-					case 2: if(game_objects[spaceshipID_AI1].speed > 0) game_objects[spaceshipID_AI1].speed -= 0.2;
+					case 2: if(game_objects[spaceshipID_AI1].speed >= 0) game_objects[spaceshipID_AI1].speed -= 0.2;
 							break;
-					case 3: if(game_objects[spaceshipID_AI1].speed < 4) game_objects[spaceshipID_AI1].speed += 0.2;
+					case 3: if(game_objects[spaceshipID_AI1].speed <= 4) game_objects[spaceshipID_AI1].speed += 0.2;
 							break;
 					case 4: break;
-				}
-
-				/*switch(action2){
-					case 0: game_objects[spaceshipID_AI2].angle += 10; break;
-					case 1: game_objects[spaceshipID_AI2].angle -= 10;
-							if(game_objects[spaceshipID_AI2].angle <= 0) game_objects[spaceshipID_AI2].angle += 360;
-							break;
-					case 2: if(game_objects[spaceshipID_AI2].speed >= 1) game_objects[spaceshipID_AI2].speed -= 0.2;
-							break;
-					case 3: if(game_objects[spaceshipID_AI2].speed <= 5) game_objects[spaceshipID_AI2].speed += 0.2;
-							break;
-					case 4: game_objects[spaceshipID_AI2].score += 0.001; 
-							break;
-				}*/
-
-				//if(env1.compareActions(action1)) sc += 1;			
+				}		
 
 				for(i = 0; i < collisionList.length; i++){
 
@@ -511,7 +508,7 @@
 				}
 
 				iteration++;
-				agent1.learn(game_objects[spaceshipID_AI1].score);
+				if(!using_trained) agent1.learn(game_objects[spaceshipID_AI1].score);
 				//agent2.learn(game_objects[spaceshipID_AI2].score);
 
 				//if(game_objects[spaceshipID_AI1].score<0) console.log(game_objects[spaceshipID_AI1].score);
