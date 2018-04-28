@@ -47,7 +47,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.4.7 - 27 Apr 2018" +" - mobile: " + isMobile;
+			var version = "RGA v0.4.8 - 28 Apr 2018" +" - mobile: " + isMobile;
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -377,6 +377,21 @@
 			        using_trained = true;
 			    });*/
 
+			    var xmlhttp = new XMLHttpRequest();
+			    xmlhttp.overrideMimeType("application/json");
+			    xmlhttp.open("GET", "iteration1.json", true);
+				xmlhttp.onreadystatechange = function() {
+				    if (this.readyState == 4 && this.status == 200) {
+				        var data = JSON.parse(this.responseText);
+					    agent1.fromJSON(data); 
+					    agent1.epsilon = 0.25;
+					    alert("loaded brain");
+					    good = 0;
+					    bad = 0;
+				    }
+				};
+				xmlhttp.send(null); 
+
 				//loop_game1();
 
 				setInterval(loop_game1, 0);
@@ -452,14 +467,6 @@
 						//mouse_x = canvas.width / 2;
 						//mouse_y = objects[1].y+80; 
 						//mouseClick = true;
-					}else
-
-					if(pressedKey == 39){
-						agent1.alpha = 0;
-						pressedKey = 0;
-						//mouse_x = canvas.width / 2;
-						//mouse_y = objects[1].y+80; 
-						//mouseClick = true;
 					}
 					/*if(pressedKey == 37){
 						mouse_point.x = game_buttons[0].rectangle.x+80;
@@ -528,21 +535,22 @@
 				}
 
 				iteration++;
-				if(!using_trained) agent1.learn(game_objects[spaceshipID_AI1].score);
+				agent1.learn(game_objects[spaceshipID_AI1].score);
 				//agent2.learn(game_objects[spaceshipID_AI2].score);
 
 				//if(game_objects[spaceshipID_AI1].score<0) console.log(game_objects[spaceshipID_AI1].score);
 
-				if(agent1.epsilon > 0.05){
+				/*if(agent1.epsilon > 0.05){
 					agent1.epsilon -= 0.0000003;
 					drawText(context, agent1.epsilon, 20, 150);
-				}
+				}*/
 
 
 				if(debugMode){
 
 					drawText(context, version, 20, 30);
-					drawText(context, "fps: " + average, 20, 90);			
+					drawText(context, "fps: " + average, 20, 90);
+					drawText(context, "gamma: " + agent1.gamma + " alpha: " + agent1.alpha + " epsilon: " + agent1.epsilon, 20, 120);				
 
 				} // debug mode end
 
