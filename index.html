@@ -477,24 +477,15 @@
 				var speed = game_objects[spaceshipID_AI1].speed;
 
 				switch(action1){
-					case 0: if(speed < 3){
-								game_objects[spaceshipID_AI1].vx += 0.2;
-							}
-							break;
-					case 1: if(speed < 3){
-								game_objects[spaceshipID_AI1].vx -= 0.2;
-							}
-							break;
-					case 2: if(speed < 3){
-								game_objects[spaceshipID_AI1].vy += 0.2;
-							}
-							break;
-					case 3: if(speed < 3) {
-								game_objects[spaceshipID_AI1].vy -= 0.2;
-							}
-							break;
+					case 0: game_objects[spaceshipID_AI1].vx += 0.2; break;
+					case 1: game_objects[spaceshipID_AI1].vx -= 0.2; break;
+					case 2: game_objects[spaceshipID_AI1].vy += 0.2; break;
+					case 3: game_objects[spaceshipID_AI1].vy -= 0.2; break;
 					case 4: break;
-				}		
+				}
+
+				game_objects[spaceshipID_AI1].vx *= 0.95;
+				game_objects[spaceshipID_AI1].vy *= 0.95;
 
 				drawText(context, speed.toFixed(2), 20, 150);
 
