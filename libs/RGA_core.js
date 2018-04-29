@@ -278,8 +278,8 @@ GameObject.prototype = {
 
 				s  = list[0].type;
 				d  = list[0].dist;
-				vx = list[0].vx;
-				vy = list[0].vy;
+				vx = list[0].vx / 5;
+				vy = list[0].vy / 5;
 
 				if(s == 0){
 					arr = [d / this.rad, 1, 1, vx, vy];
@@ -303,8 +303,8 @@ GameObject.prototype = {
 		}
 
 		//this.input.push(this.angle / 360);
-		this.input.push(this.vx);
-		this.input.push(this.vy);
+		this.input.push(this.vx / 5);
+		this.input.push(this.vy / 5);
 	}
 }
 
