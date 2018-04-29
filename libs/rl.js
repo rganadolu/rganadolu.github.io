@@ -1070,7 +1070,7 @@ DQNAgent.prototype = {
   },
   learn: function(r1) {
     // perform an update on Q function
-    if(this.r0 != null && this.alpha > 0) {
+    if(this.alpha > 0 && this.r0 != null) {
 
       // learn from this tuple to get a sense of how "surprising" it is to the agent
       var tderror = this.learnFromTuple(this.s0, this.a0, this.r0, this.s1, this.a1);

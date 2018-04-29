@@ -149,7 +149,7 @@ var NearObject = function(object, distance, angle){
 	this.angle = angle;
 }
 
-var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 4){
+var GameObject = function(id ,type, sprite, x = 0, y = 0, angle = 0, radius = 1, speed = 0){
 	/* object properties */
 	this.id = id;
 	this.type = type;
@@ -192,6 +192,8 @@ GameObject.prototype = {
 		if(this.type != "spaceship"){
 			this.vx = Math.cos(_angle) * this.speed;
 			this.vy = Math.sin(_angle) * this.speed;
+		}else{
+			this.speed = Math.sqrt( (this.vx * this.vx) + (this.vy * this.vy) );
 		}
 
 		this.prev_point = new Point(this.x, this.y);
@@ -276,8 +278,8 @@ GameObject.prototype = {
 
 				s  = list[0].type;
 				d  = list[0].dist;
-				vx = list[0].vx / 10;
-				vy = list[0].vy / 10;
+				vx = list[0].vx;
+				vy = list[0].vy;
 
 				if(s == 0){
 					arr = [d / this.rad, 1, 1, vx, vy];
@@ -295,23 +297,14 @@ GameObject.prototype = {
 				d = this.rad;
 			}
 
-			switch(s){
-				/*case -1: this.score += 0.01;
-						 break;*/
-				case  0: this.score -= (radius/d)/1000;
-						 break;
-				/*case  1: this.score += (d/radius)/100;
-						 break;
-				case  2: this.score += (d/radius)/10;
-						 break;*/
-			}
+			//if(s == 0) this.score -= (radius / d) / 1000; // do not stay near the walls
 
 			if(draw) drawLine(context, this.curr_point, getPoint(this.x, this.y, d, i), color, 2);
 		}
 
 		//this.input.push(this.angle / 360);
-		this.input.push(this.vx / 10);
-		this.input.push(this.vy / 10);
+		this.input.push(this.vx);
+		this.input.push(this.vy);
 	}
 }
 
@@ -414,8 +407,8 @@ CollisionArea.prototype = {
 					(object.y - object.radius <= this.rectangle.y || object.y + object.radius >= this.rectangle.height)){
 				 	object.jump_previous();
 				 	//object.angle += 2 * getHorizontalAngle(object.angle);
-				 	object.vx = 0; object.vy = 0;
-				 	//object.score -= 5.0;
+				 	object.vy = 0; object.vx = 0;
+				 	object.score -= 5.0;
 				}
 			});
 		});
@@ -427,7 +420,7 @@ CollisionArea.prototype = {
 					object.jump_previous();
 					//object.angle += 2 * getVerticalAngle(object.angle);
 					object.vx = 0; object.vy = 0;
-					//object.score -= 5.0;
+					object.score -= 5.0;
 				}	
 			});
 		});
