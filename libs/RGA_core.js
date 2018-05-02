@@ -297,7 +297,7 @@ GameObject.prototype = {
 				d = this.rad;
 			}
 
-			//if(s == 0) this.score -= (radius / d) / 1000; // do not stay near the walls
+			if(s == 0) this.score -= (radius / d) / 1000; // do not stay near the walls
 
 			if(draw) drawLine(context, this.curr_point, getPoint(this.x, this.y, d, i), color, 2);
 		}
@@ -406,9 +406,9 @@ CollisionArea.prototype = {
 				if( object.border_collision == true && 
 					(object.y - object.radius <= this.rectangle.y || object.y + object.radius >= this.rectangle.height)){
 				 	object.jump_previous();
-				 	//object.angle += 2 * getHorizontalAngle(object.angle);
+				 	// object.angle += 2 * getHorizontalAngle(object.angle);
 				 	object.vy = 0; object.vx = 0;
-				 	object.score -= 5.0;
+				 	// object.score -= 5.0;
 				}
 			});
 		});
@@ -418,9 +418,9 @@ CollisionArea.prototype = {
 				if( object.border_collision == true && 
 					(object.x - object.radius <= this.rectangle.x || object.x + object.radius  >= this.rectangle.width)){
 					object.jump_previous();
-					//object.angle += 2 * getVerticalAngle(object.angle);
+					// object.angle += 2 * getVerticalAngle(object.angle);
 					object.vx = 0; object.vy = 0;
-					object.score -= 5.0;
+					// object.score -= 5.0;
 				}	
 			});
 		});
