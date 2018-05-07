@@ -7,7 +7,6 @@
 		<meta name="viewport" content="width=device-width,minimum-scale=1,maximum-scale=1,user-scalable=no,minimal-ui">
 		<script type="text/javascript" src = "libs/RGA_core.js"></script>
 		<script type="text/javascript" src = "libs/rl.js"></script>
-		<script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
 		<style>
 			html{
 				touch-action1: none;
@@ -47,7 +46,7 @@
 
 			var debugMode = true;
 			var isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i.test(navigator.userAgent));	
-			var version = "RGA v0.5 - 2 May 2018" +" - mobile: " + isMobile;
+			var version = "RGA v1.0 - 7 May 2018";
 			var fullscreen = false;
 			var request_id;
 			var mouseClick = false;
@@ -213,14 +212,22 @@
 
 			var img_empty 	   = loadImage("assets/empty.png")
 			var img_ship 	   = loadImage("assets/gemi.png");
+			var img_ship2 	   = loadImage("assets/gemi2.png");
 			var img_asteroid   = loadImage("assets/asteroid2.png");
 			var img_plus	   = loadImage("assets/plus.png");
 			var img_explosion  = loadImage("assets/explosion.png");
 			var img_landscape  = loadImage("assets/landscape.png");
-			var img_btn_left   = loadImage("assets/button_left.png");
-			var img_btn_right  = loadImage("assets/button_right.png");
-			var img_btn_left2  = loadImage("assets/button_left2.png");
-			var img_btn_right2 = loadImage("assets/button_right2.png");
+
+			var img_btn_left      = loadImage("assets/button_left.png");
+			var img_btn_right     = loadImage("assets/button_right.png");
+			var img_btn_left2     = loadImage("assets/button_left2.png");
+			var img_btn_right2    = loadImage("assets/button_right2.png");
+			var img_btn_back      = loadImage("assets/back.png");
+			var img_btn_singleai  = loadImage("assets/singleai.png");
+			var img_btn_aivsai    = loadImage("assets/aivsai.png");
+			var img_btn_humanvsai = loadImage("assets/humanvsai.png");
+			var img_btn_training  = loadImage("assets/training.png");
+
 
 			var game_objects;
 			var game_buttons;
@@ -232,6 +239,9 @@
 			var env1, env2;
 			var spec1, spec2;
 			var agent1, agent2;
+			var iteration = 0;
+			var startI = 0;
+			var endI = 0;
 
 			/* GAME LOGIC BEGINS HERE */
 
@@ -240,7 +250,13 @@
     			document.body.scroll = "no"; // disable scrollbar also for ie browsers :(
 				resize();
 				load_welcome();
-				alert("saves at every " + save_at + " iteration");
+				// alert("saves at every " + save_at + " iteration");
+			}
+
+			function measure(){
+				endI = iteration;
+				average = endI - startI;
+				startI = iteration;
 			}
 
 			function updateObjects(game_objects, animations, game_buttons){
@@ -259,37 +275,20 @@
 				i = game_objects.length;
 				while (--i >= 0) game_objects[i].update_object();
 
-				if(!training_mode){
+				context.fillStyle = "#4E5E7A";
+				context.fillRect(0, 0, canvas.width, canvas.height);
 
-					context.fillStyle = "#44526B";
-					context.fillRect(0, 0, canvas.width, canvas.height);
+				/* DRAW GAME OBJECTS */
+				i = game_objects.length;
+				while (--i >= 0) game_objects[i].update_sprite(context);
 
-					/* DRAW GAME OBJECTS */
-					i = game_objects.length;
-					while (--i >= 0) game_objects[i].update_sprite(context);
+				/* DRAW ANIMATIONS */
+				i = animations.length;
+				while (--i >= 0) animations[i].update_sprite(context);	
 
-					/* DRAW ANIMATIONS */
-					i = animations.length;
-					while (--i >= 0) animations[i].update_sprite(context);	
-
-					/* DRAW BUTTONS */
-					i = game_buttons.length;
-					while (--i >= 0) game_buttons[i].update_sprite(context);
-
-				}else if(training_mode){
-					context.fillStyle = "#44526B";
-					context.fillRect(0, 0, 600, 300);
-				}
-
-				drawText(context, 
-					"iteration: " + iteration + 
-					" good: " + game_objects[spaceshipID_AI1].good + 
-					" bad: " + game_objects[spaceshipID_AI1].bad + 
-					" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 60);
-
-				if(iteration != 0 && iteration % save_at == 0){
-					download("iteration" + iteration + ".json", JSON.stringify(agent1.toJSON()));
-				}
+				/* DRAW BUTTONS */
+				i = game_buttons.length;
+				while (--i >= 0) game_buttons[i].update_sprite(context);
 
 			}
 
@@ -316,7 +315,7 @@
 				if(window.innerHeight < window.innerWidth){
 					if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
 						cancelAnimationFrame(request_id);
-						load_game1(); 
+						load_menu(); 
 					}
 				}
 
@@ -324,32 +323,75 @@
 				
 			}
 
+			function load_menu() {
+				game_buttons = []; game_objects = []; animations = []; mouseClick = false;
+				game_buttons.push(
+					new GameButton(
+						[new Sprite(img_btn_training, 400, 100, 0, 0), new Sprite(img_btn_training, 400, 100, 0, 0)],
+						 new Rectangle(200, 100, 400, 100, false)));
+				game_buttons.push(
+					new GameButton(
+						[new Sprite(img_btn_singleai, 400, 100, 0, 0), new Sprite(img_btn_training, 400, 100, 0, 0)],
+						 new Rectangle(200, 250, 400, 100, false)));
+				game_buttons.push(
+					new GameButton(
+						[new Sprite(img_btn_humanvsai, 575, 100, 0, 0), new Sprite(img_btn_training, 575, 100, 0, 0)],
+						 new Rectangle(200, 400, 575, 100, false)));
+				game_buttons.push(
+					new GameButton(
+						[new Sprite(img_btn_aivsai, 400, 100, 0, 0), new Sprite(img_btn_training, 400, 100, 0, 0)],
+						 new Rectangle(200, 550, 400, 100, false)));
+
+				loop_menu();
+			}
+								
+			function loop_menu() {
+
+				request_id = requestAnimationFrame(loop_menu);
+
+				updateObjects(game_objects, animations, game_buttons);
+
+				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
+					if(!isMobile){
+						cancelAnimationFrame(request_id);
+						load_game1(); 
+					}else{
+						alert("Training mode is not available for mobile devices");
+					}
+				}else if(game_buttons[1].is_clicked(mouseClick, mouse_point)){
+					cancelAnimationFrame(request_id);
+					load_game2(); 
+				}else if(game_buttons[2].is_clicked(mouseClick, mouse_point)){
+					cancelAnimationFrame(request_id);
+					load_game4(); 
+				}else if(game_buttons[3].is_clicked(mouseClick, mouse_point)){
+					cancelAnimationFrame(request_id);
+					load_game3(); 
+				}
+
+			}
+
 			function load_game1(){
 
-				game_buttons = []; game_objects = []; animations = [];
+				game_buttons = []; game_objects = []; animations = []; objectId = 0;
 				collisions = new CollisionArea(128, 144, game_area);
 
-				/*game_buttons.push(new GameButton(
-					[new Sprite(img_btn_left, 160, 160, 0, 0), new Sprite(img_btn_left2, 160, 160, 0, 0)], 
-					 new Rectangle(80, 500, 160, 160))
-				);*/ // left button
-
-				/*game_buttons.push(new GameButton(
-					[new Sprite(img_btn_right , 160, 160, 0, 0), new Sprite(img_btn_right2, 160, 160, 0, 0)],
-					 new Rectangle(canvas.width - 240, 500, 160, 160))
-				); // right button*/
+				game_buttons.push(new GameButton(
+					[new Sprite(img_btn_back, 250, 100, 0, 0), new Sprite(img_btn_left2, 250, 100, 0, 0)], 
+					 new Rectangle(1000, 50, 250, 100))
+				);
 
 				spaceshipID_AI1 = objectId;
 
 				game_objects.push(
 					new GameObject(objectId++, "spaceship",
 					new Sprite(img_ship, 45, 32, "center", "center", 4, 35),
-					canvas.width / 2, canvas.height / 2, 0, 16, 0)
+					canvas.width / 2, canvas.height / 2, 0, 16, 3)
 				); // spaceship
 
 				spawn_timer = 0;
 
-				env1 = new RGA(30, 250, 5);
+				env1 = new RGA(30, 250, 3);
 
 				spec1 = {};
 				spec1.update = 'qlearn'; // qlearn | sarsa
@@ -362,43 +404,14 @@
 				spec1.tderror_clamp = 1.0; // for robustness
 				spec1.num_hidden_units = 100; // number of neurons in hidden layer
 
-				agent1 = new RL.DQNAgent(env1, spec1);
+				agent1 = new RL.DQNAgent(env1, spec1);	    
 			    
-			    /*
-			    var xmlhttp = new XMLHttpRequest();
-			    xmlhttp.overrideMimeType("application/json");
-			    xmlhttp.open("GET", "iteration1.json", true);
-				xmlhttp.onreadystatechange = function() {
-				    if (this.readyState == 4 && this.status == 200) {
-				        var data = JSON.parse(this.responseText);
-					    agent1.fromJSON(data); 
-					    agent1.epsilon = 0.0;
-					    alert("loaded brain");
-					    good = 0;
-					    bad = 0;
-				    }
-				};
-				xmlhttp.send(null);
-				*/
-
-				//loop_game1();
-
-				setInterval(loop_game1, 1);
-				setInterval(measure, 1000);
-			}
-
-			var iteration = 0;
-			var startI = 0;
-			var endI = 0;
-
-			function measure(){
-				endI = iteration;
-				average = endI - startI;
-				startI = iteration;
+				loop_game1();
 			}
 
 			function loop_game1(){
-				//request_id = requestAnimationFrame(loop_game1);
+
+				request_id = requestAnimationFrame(loop_game1);
 
 				updateObjects(game_objects, animations, game_buttons);
 
@@ -429,44 +442,10 @@
 					spawn_timer = 0;
 				}
 
-				/* HANDLE MOUSE CLICK & TOUCH */
-				/*if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
-					//game_objects[0].angle += 5;
-				}*/ // left button is clicked
-	
-				/*if(game_buttons[1].is_clicked(mouseClick, mouse_point)){
-					game_objects[0].angle -= 5;
-					if(game_objects[0].angle <=0) game_objects[0].angle += 360;
-				} // right button is clicked
-
-				/* HANDLE KEYBOARD */
-				if(keyboardControl == true){
-
-					if(pressedKey == 32){
-						training_mode = !training_mode;
-						pressedKey = 0;
-						//mouse_x = canvas.width / 2;
-						//mouse_y = objects[1].y+80; 
-						//mouseClick = true;
-					}else
-
-					if(pressedKey == 37){
-						download("iteration" + iteration + ".json", JSON.stringify(agent1.toJSON()));
-						pressedKey = 0;
-						//mouse_x = canvas.width / 2;
-						//mouse_y = objects[1].y+80; 
-						//mouseClick = true;
-					}
-					/*if(pressedKey == 37){
-						mouse_point.x = game_buttons[0].rectangle.x+80;
-						mouse_point.y = game_buttons[0].rectangle.y+80;
-						mouseClick = true;
-					}else if(pressedKey == 39){				
-						mouse_point.x = game_buttons[1].rectangle.x+80;
-						mouse_point.y = game_buttons[1].rectangle.y+80;
-						mouseClick = true;
-					}*/
-				} // keyboard controls*/
+				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
+					cancelAnimationFrame(request_id);
+					load_menu(); 
+				}
 
 				/* HANDLE COLLISIONS HERE */
 
@@ -479,15 +458,10 @@
 				var action1 = agent1.act(game_objects[spaceshipID_AI1].input);
 
 				switch(action1){
-					case 0: game_objects[spaceshipID_AI1].vx += 0.2; break;
-					case 1: game_objects[spaceshipID_AI1].vx -= 0.2; break;
-					case 2: game_objects[spaceshipID_AI1].vy += 0.2; break;
-					case 3: game_objects[spaceshipID_AI1].vy -= 0.2; break;
-					case 4: break;
+					case 0: game_objects[spaceshipID_AI1].angle += 10; break;
+					case 1: game_objects[spaceshipID_AI1].angle -= 10; break;
+					case 2: break;
 				}
-
-				game_objects[spaceshipID_AI1].vx *= 0.95;
-				game_objects[spaceshipID_AI1].vy *= 0.95;
 
 				for(i = 0; i < collisionList.length; i++){
 
@@ -524,27 +498,594 @@
 
 				iteration++;
 
-				if(agent1.alpha>0) 
-					agent1.learn(game_objects[spaceshipID_AI1].score);
-				//agent2.learn(game_objects[spaceshipID_AI2].score);
+				agent1.learn(game_objects[spaceshipID_AI1].score);
 
-				//if(game_objects[spaceshipID_AI1].score<0) console.log(game_objects[spaceshipID_AI1].score);
 
-				if(agent1.epsilon > 0.1){
-					agent1.epsilon -= 0.0000003;
-					drawText(context, agent1.epsilon, 20, 150);
-				}
-
+				if(agent1.epsilon > 0.1) agent1.epsilon -= 0.0000003;
 
 				if(debugMode){
 
 					drawText(context, version, 20, 30);
-					drawText(context, "fps: " + average, 20, 90);
-					drawText(context, "gamma: " + agent1.gamma + " alpha: " + agent1.alpha + " epsilon: " + agent1.epsilon, 20, 120);				
+
+					drawText(context, 
+					"iteration: " + iteration + 
+					" good: " + game_objects[spaceshipID_AI1].good + 
+					" bad: " + game_objects[spaceshipID_AI1].bad + 
+					" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 60);
+
+					if(iteration != 0 && iteration % save_at == 0){
+						download("iteration" + iteration + ".json", JSON.stringify(agent1.toJSON()));
+					}			
 
 				} // debug mode end
 
 			} // loop_game1 end
+
+			function load_game2(){
+
+				game_buttons = []; game_objects = []; animations = []; objectId = 0;
+				collisions = new CollisionArea(128, 144, game_area);
+
+				game_buttons.push(new GameButton(
+					[new Sprite(img_btn_back, 250, 100, 0, 0), new Sprite(img_btn_left2, 250, 100, 0, 0)], 
+					 new Rectangle(1000, 50, 250, 100))
+				);
+
+				spaceshipID_AI1 = objectId;
+
+				game_objects.push(
+					new GameObject(objectId++, "spaceship",
+					new Sprite(img_ship, 45, 32, "center", "center", 4, 35),
+					canvas.width / 2, canvas.height / 2, 0, 16, 3)
+				); // spaceship
+
+				spawn_timer = 0;
+
+				env1 = new RGA(30, 250, 3);
+
+				spec1 = {};
+				spec1.update = 'qlearn'; // qlearn | sarsa
+				spec1.gamma = 0.9; // discount factor, [0, 1)
+				spec1.epsilon = 0.5; // initial epsilon for epsilon-greedy policy, [0, 1)
+				spec1.alpha = 0.005; // value function learning rate
+				spec1.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec1.experience_size = 10000; // size of experience
+				spec1.learning_steps_per_iteration = 15;
+				spec1.tderror_clamp = 1.0; // for robustness
+				spec1.num_hidden_units = 100; // number of neurons in hidden layer
+
+				agent1 = new RL.DQNAgent(env1, spec1);	    
+			    
+			    
+			    var xmlhttp = new XMLHttpRequest();
+			    xmlhttp.overrideMimeType("application/json");
+			    xmlhttp.open("GET", "iteration2.json", true);
+				xmlhttp.onreadystatechange = function() {
+				    if (this.readyState == 4 && this.status == 200) {
+				        var data = JSON.parse(this.responseText);
+					    agent1.fromJSON(data); 
+					    agent1.epsilon = 0.05;
+				    }
+				};
+				xmlhttp.send(null);
+				
+				loop_game2();
+			}
+
+			function loop_game2(){
+
+				request_id = requestAnimationFrame(loop_game2);
+
+				updateObjects(game_objects, animations, game_buttons);
+
+				spawn_timer++;
+
+				if(spawn_timer % 30 == 0){
+
+					var plusAdd 	= 24 - objectCount(game_objects, game_area, "plus");
+					var asteroidAdd = 24 - objectCount(game_objects, game_area, "asteroid");
+
+					for(var i = 0; i < asteroidAdd; i++){
+						var sprite = new Sprite(img_asteroid, 32, 32, "center", "center", 1, 0);
+						var point  = generatePoint();
+						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
+						var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 16, 1);
+						game_objects.push(gameObject); // test asteroids
+					}
+
+
+					for(var i = 0; i < plusAdd; i++){
+						var sprite = new Sprite(img_plus, 32, 32, "center", "center", 1, 0);
+						var point  = generatePoint();
+						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
+						var gameObject = new GameObject(objectId++, "plus",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 16, 1);
+						game_objects.push(gameObject); // test plus
+					}
+
+					spawn_timer = 0;
+				}
+
+				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
+					cancelAnimationFrame(request_id);
+					load_menu(); 
+				}
+
+				/* HANDLE COLLISIONS HERE */
+
+				var collisionList = collisions.update_collisions(game_objects);
+
+				/* AI STUFF HERE */
+
+				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, env1.radius, env1.eyes, context, !training_mode);
+				
+				var action1 = agent1.act(game_objects[spaceshipID_AI1].input);
+
+				switch(action1){
+					case 0: game_objects[spaceshipID_AI1].angle += 10; break;
+					case 1: game_objects[spaceshipID_AI1].angle -= 10; break;
+					case 2: break;
+				}
+
+				for(i = 0; i < collisionList.length; i++){
+
+					var collision = collisionList[i];
+
+					var index1 = -1, index2 = -1;
+
+					for(var c = 0; c < game_objects.length; c++){
+						if(game_objects[c].id == collision.id1) index1 = c;	
+						if(game_objects[c].id == collision.id2) index2 = c;		
+					}
+
+					if(collision.type1 == "spaceship" || collision.type2 == "spaceship") {
+
+						if(collision.type1 == "asteroid" || collision.type2 == "asteroid"){
+
+							if(!training_mode){
+								animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 50, false), 
+								game_objects[index2].x, game_objects[index2].y));
+							}
+
+							game_objects[index1].score -= 1.0;
+							game_objects[index1].bad++;
+							game_objects[index2].destroyed = true;
+
+						}else if(collision.type1 == "plus" || collision.type2 == "plus"){
+
+							game_objects[index1].score += 1.0;
+							game_objects[index1].good++;
+							game_objects[index2].destroyed = true;
+						}
+					}
+				}
+
+				iteration++;
+
+				agent1.learn(game_objects[spaceshipID_AI1].score);
+
+				if(debugMode){
+
+					drawText(context, version, 20, 30);
+
+					drawText(context,  
+					" good: " + game_objects[spaceshipID_AI1].good + 
+					" bad: " + game_objects[spaceshipID_AI1].bad + 
+					" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 60);		
+
+				} // debug mode end
+
+			} // loop_game2 end
+
+			function load_game3(){
+
+				game_buttons = []; game_objects = []; animations = []; objectId = 0;
+				collisions = new CollisionArea(128, 144, game_area);
+
+				game_buttons.push(new GameButton(
+					[new Sprite(img_btn_back, 250, 100, 0, 0), new Sprite(img_btn_left2, 250, 100, 0, 0)], 
+					 new Rectangle(1000, 50, 250, 100))
+				);
+
+				spaceshipID_AI1 = objectId;
+
+				game_objects.push(
+					new GameObject(objectId++, "spaceship",
+					new Sprite(img_ship, 45, 32, "center", "center", 4, 35),
+					canvas.width / 2, canvas.height / 2, 0, 16, 3)
+				); // spaceship
+
+				spaceshipID_AI2 = objectId;
+
+				game_objects.push(
+					new GameObject(objectId++, "spaceship",
+					new Sprite(img_ship2, 45, 32, "center", "center", 4, 35),
+					canvas.width / 2, canvas.height / 2, 0, 16, 3)
+				); // spaceship
+
+				spawn_timer = 0;
+
+				env1 = new RGA(30, 250, 3);
+				env2 = new RGA(30, 250, 3);
+
+				spec1 = {};
+				spec1.update = 'qlearn'; // qlearn | sarsa
+				spec1.gamma = 0.9; // discount factor, [0, 1)
+				spec1.epsilon = 0.5; // initial epsilon for epsilon-greedy policy, [0, 1)
+				spec1.alpha = 0.005; // value function learning rate
+				spec1.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec1.experience_size = 10000; // size of experience
+				spec1.learning_steps_per_iteration = 15;
+				spec1.tderror_clamp = 1.0; // for robustness
+				spec1.num_hidden_units = 100; // number of neurons in hidden layer
+
+				agent1 = new RL.DQNAgent(env1, spec1);	
+
+				spec2 = {};
+				spec2.update = 'qlearn'; // qlearn | sarsa
+				spec2.gamma = 0.9; // discount factor, [0, 1)
+				spec2.epsilon = 0.5; // initial epsilon for epsilon-greedy policy, [0, 1)
+				spec2.alpha = 0.005; // value function learning rate
+				spec2.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec2.experience_size = 10000; // size of experience
+				spec2.learning_steps_per_iteration = 15;
+				spec2.tderror_clamp = 1.0; // for robustness
+				spec2.num_hidden_units = 100; // number of neurons in hidden layer  
+
+				agent2 = new RL.DQNAgent(env2, spec2);	  
+			    
+			    var xmlhttp = new XMLHttpRequest();
+			    xmlhttp.overrideMimeType("application/json");
+			    xmlhttp.open("GET", "iteration1.json", true);
+				xmlhttp.onreadystatechange = function() {
+				    if (this.readyState == 4 && this.status == 200) {
+				        var data = JSON.parse(this.responseText);
+					    agent2.fromJSON(data); 
+					    agent2.epsilon = 0.05;
+				    }
+				};
+				xmlhttp.send(null);
+
+				xmlhttp = new XMLHttpRequest();
+			    xmlhttp.overrideMimeType("application/json");
+			    xmlhttp.open("GET", "iteration2.json", true);
+				xmlhttp.onreadystatechange = function() {
+				    if (this.readyState == 4 && this.status == 200) {
+				        var data = JSON.parse(this.responseText);
+					    agent2.fromJSON(data); 
+					    agent2.epsilon = 0.05;
+				    }
+				};
+				xmlhttp.send(null);
+
+				loop_game3();
+			}
+
+			function loop_game3(){
+
+				request_id = requestAnimationFrame(loop_game3);
+
+				updateObjects(game_objects, animations, game_buttons);
+
+				spawn_timer++;
+
+				if(spawn_timer % 30 == 0){
+
+					var plusAdd 	= 24 - objectCount(game_objects, game_area, "plus");
+					var asteroidAdd = 24 - objectCount(game_objects, game_area, "asteroid");
+
+					for(var i = 0; i < asteroidAdd; i++){
+						var sprite = new Sprite(img_asteroid, 32, 32, "center", "center", 1, 0);
+						var point  = generatePoint();
+						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
+						var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 16, 1);
+						game_objects.push(gameObject); // test asteroids
+					}
+
+
+					for(var i = 0; i < plusAdd; i++){
+						var sprite = new Sprite(img_plus, 32, 32, "center", "center", 1, 0);
+						var point  = generatePoint();
+						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
+						var gameObject = new GameObject(objectId++, "plus",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 16, 1);
+						game_objects.push(gameObject); // test plus
+					}
+
+					spawn_timer = 0;
+				}
+
+				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
+					cancelAnimationFrame(request_id);
+					load_menu(); 
+				}
+
+				/* HANDLE COLLISIONS HERE */
+
+				var collisionList = collisions.update_collisions(game_objects);
+
+				/* AI STUFF HERE */
+
+				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, env1.radius, env1.eyes, context, !training_mode);
+				game_objects[spaceshipID_AI2].getInput(game_objects, game_area, env1.radius, env1.eyes, context, !training_mode);
+				
+				var action1 = agent1.act(game_objects[spaceshipID_AI1].input);
+				var action2 = agent2.act(game_objects[spaceshipID_AI2].input);
+
+				switch(action1){
+					case 0: game_objects[spaceshipID_AI1].angle += 10; break;
+					case 1: game_objects[spaceshipID_AI1].angle -= 10; break;
+					case 2: break;
+				}
+
+				switch(action2){
+					case 0: game_objects[spaceshipID_AI2].angle += 10; break;
+					case 1: game_objects[spaceshipID_AI2].angle -= 10; break;
+					case 2: break;
+				}
+
+				for(i = 0; i < collisionList.length; i++){
+
+					var collision = collisionList[i];
+
+					var index1 = -1, index2 = -1;
+
+					for(var c = 0; c < game_objects.length; c++){
+						if(game_objects[c].id == collision.id1) index1 = c;	
+						if(game_objects[c].id == collision.id2) index2 = c;		
+					}
+
+					if(collision.type1 == "spaceship" || collision.type2 == "spaceship") {
+
+						if(collision.type1 == "asteroid" || collision.type2 == "asteroid"){
+
+							if(!training_mode){
+								animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 50, false), 
+								game_objects[index2].x, game_objects[index2].y));
+							}
+
+							game_objects[index1].score -= 1.0;
+							game_objects[index1].bad++;
+							game_objects[index2].destroyed = true;
+
+						}else if(collision.type1 == "plus" || collision.type2 == "plus"){
+
+							game_objects[index1].score += 1.0;
+							game_objects[index1].good++;
+							game_objects[index2].destroyed = true;
+						}
+					}
+				}
+
+				iteration++;
+
+				agent1.learn(game_objects[spaceshipID_AI1].score);
+				agent2.learn(game_objects[spaceshipID_AI2].score);
+
+				if(debugMode){
+
+					drawText(context, version, 20, 30);
+
+					drawText(context, 
+					"WORSE AI: " +
+					" good: " + game_objects[spaceshipID_AI1].good + 
+					" bad: " + game_objects[spaceshipID_AI1].bad + 
+					" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 90);
+
+					drawText(context, 
+					"BETTER AI: " +
+					" good: " + game_objects[spaceshipID_AI2].good + 
+					" bad: " + game_objects[spaceshipID_AI2].bad + 
+					" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 120);	
+
+					drawText(context, "WORSE", game_objects[spaceshipID_AI1].x, game_objects[spaceshipID_AI1].y-40);
+					drawText(context, "BETTER", game_objects[spaceshipID_AI2].x, game_objects[spaceshipID_AI2].y-40);	
+
+				} // debug mode end
+
+			} // loop_game3 end
+
+			function load_game4(){
+
+				game_buttons = []; game_objects = []; animations = []; objectId = 0;
+				collisions = new CollisionArea(128, 144, game_area);
+
+				game_buttons.push(new GameButton(
+					[new Sprite(img_btn_back, 250, 100, 0, 0), new Sprite(img_btn_left2, 250, 100, 0, 0)], 
+					 new Rectangle(1000, 50, 250, 100))
+				);
+
+				game_buttons.push(new GameButton(
+					[new Sprite(img_btn_left, 160, 160, 0, 0), new Sprite(img_btn_left2, 160, 160, 0, 0)], 
+					 new Rectangle(80, 500, 160, 160))
+				); // left button
+
+				game_buttons.push(new GameButton(
+					[new Sprite(img_btn_right , 160, 160, 0, 0), new Sprite(img_btn_right2, 160, 160, 0, 0)],
+					 new Rectangle(canvas.width - 240, 500, 160, 160))
+				); // right button
+
+				spaceshipID_AI1 = objectId;
+
+				game_objects.push(
+					new GameObject(objectId++, "spaceship",
+					new Sprite(img_ship, 45, 32, "center", "center", 4, 35),
+					canvas.width / 2, canvas.height / 2, 0, 16, 3)
+				); // spaceship
+
+				spaceshipID_AI2 = objectId;
+
+				game_objects.push(
+					new GameObject(objectId++, "spaceship",
+					new Sprite(img_ship2, 45, 32, "center", "center", 4, 35),
+					canvas.width / 2, 500, 0, 16, 3)
+				); // spaceship human
+
+				spawn_timer = 0;
+
+				env1 = new RGA(30, 250, 3);
+
+				spec1 = {};
+				spec1.update = 'qlearn'; // qlearn | sarsa
+				spec1.gamma = 0.9; // discount factor, [0, 1)
+				spec1.epsilon = 0.5; // initial epsilon for epsilon-greedy policy, [0, 1)
+				spec1.alpha = 0.005; // value function learning rate
+				spec1.experience_add_every = 5; // number of time steps before we add another experience to replay memory
+				spec1.experience_size = 10000; // size of experience
+				spec1.learning_steps_per_iteration = 15;
+				spec1.tderror_clamp = 1.0; // for robustness
+				spec1.num_hidden_units = 100; // number of neurons in hidden layer
+
+				agent1 = new RL.DQNAgent(env1, spec1);	    
+			    
+			    var xmlhttp = new XMLHttpRequest();
+			    xmlhttp.overrideMimeType("application/json");
+			    xmlhttp.open("GET", "iteration2.json", true);
+				xmlhttp.onreadystatechange = function() {
+				    if (this.readyState == 4 && this.status == 200) {
+				        var data = JSON.parse(this.responseText);
+					    agent1.fromJSON(data); 
+					    agent1.epsilon = 0.05;
+				    }
+				};
+				xmlhttp.send(null);	
+
+				loop_game4();
+			}
+
+			function loop_game4(){
+
+				request_id = requestAnimationFrame(loop_game4);
+
+				updateObjects(game_objects, animations, game_buttons);
+
+				spawn_timer++;
+
+				if(spawn_timer % 30 == 0){
+
+					var plusAdd 	= 24 - objectCount(game_objects, game_area, "plus");
+					var asteroidAdd = 24 - objectCount(game_objects, game_area, "asteroid");
+
+					for(var i = 0; i < asteroidAdd; i++){
+						var sprite = new Sprite(img_asteroid, 32, 32, "center", "center", 1, 0);
+						var point  = generatePoint();
+						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
+						var gameObject = new GameObject(objectId++, "asteroid",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 16, 1);
+						game_objects.push(gameObject); // test asteroids
+					}
+
+
+					for(var i = 0; i < plusAdd; i++){
+						var sprite = new Sprite(img_plus, 32, 32, "center", "center", 1, 0);
+						var point  = generatePoint();
+						var pointInCanvas = new Point(randomInt(0, canvas.width),randomInt(0, canvas.height));
+						var gameObject = new GameObject(objectId++, "plus",	sprite, point.x, point.y, getAngle(point, pointInCanvas), 16, 1);
+						game_objects.push(gameObject); // test plus
+					}
+
+					spawn_timer = 0;
+				}
+
+				/* HANDLE MOUSE CLICK & TOUCH */
+				if(game_buttons[1].is_clicked(mouseClick, mouse_point)){
+					game_objects[spaceshipID_AI2].angle += 10;
+				} // left button is clicked
+	
+				if(game_buttons[2].is_clicked(mouseClick, mouse_point)){
+					game_objects[spaceshipID_AI2].angle -= 10;
+				} // right button is clicked
+
+				if(game_buttons[0].is_clicked(mouseClick, mouse_point)){
+					cancelAnimationFrame(request_id);
+					load_menu(); 
+				}
+
+				/* HANDLE KEYBOARD */
+				if(keyboardControl == true){
+					if(pressedKey == 37){
+						mouse_point.x = game_buttons[1].rectangle.x+80;
+						mouse_point.y = game_buttons[1].rectangle.y+80;
+						mouseClick = true;
+					}else if(pressedKey == 39){				
+						mouse_point.x = game_buttons[2].rectangle.x+80;
+						mouse_point.y = game_buttons[2].rectangle.y+80;
+						mouseClick = true;
+					}
+				} // keyboard controls*/
+
+				/* HANDLE COLLISIONS HERE */
+
+				var collisionList = collisions.update_collisions(game_objects);
+
+				/* AI STUFF HERE */
+
+				game_objects[spaceshipID_AI1].getInput(game_objects, game_area, env1.radius, env1.eyes, context, false);
+				
+				var action1 = agent1.act(game_objects[spaceshipID_AI1].input);
+
+				switch(action1){
+					case 0: game_objects[spaceshipID_AI1].angle += 10; break;
+					case 1: game_objects[spaceshipID_AI1].angle -= 10; break;
+					case 2: break;
+				}
+
+				for(i = 0; i < collisionList.length; i++){
+
+					var collision = collisionList[i];
+
+					var index1 = -1, index2 = -1;
+
+					for(var c = 0; c < game_objects.length; c++){
+						if(game_objects[c].id == collision.id1) index1 = c;	
+						if(game_objects[c].id == collision.id2) index2 = c;		
+					}
+
+					if(collision.type1 == "spaceship" || collision.type2 == "spaceship") {
+
+						if(collision.type1 == "asteroid" || collision.type2 == "asteroid"){
+
+							if(!training_mode){
+								animations.push(new Animation(new Sprite(img_explosion, 64, 64, "center", "center", 8, 50, false), 
+								game_objects[index2].x, game_objects[index2].y));
+							}
+
+							game_objects[index1].score -= 1.0;
+							game_objects[index1].bad++;
+							game_objects[index2].destroyed = true;
+
+						}else if(collision.type1 == "plus" || collision.type2 == "plus"){
+
+							game_objects[index1].score += 1.0;
+							game_objects[index1].good++;
+							game_objects[index2].destroyed = true;
+						}
+					}
+				}
+
+				iteration++;
+
+				agent1.learn(game_objects[spaceshipID_AI1].score);
+
+				if(debugMode){
+
+					drawText(context, version, 20, 30);	
+
+					drawText(context, 
+					"AI: " + 
+					" good: " + game_objects[spaceshipID_AI1].good + 
+					" bad: " + game_objects[spaceshipID_AI1].bad + 
+					" ratio: " + (game_objects[spaceshipID_AI1].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 60);
+
+					drawText(context, 
+					"HUMAN: " + 
+					" good: " + game_objects[spaceshipID_AI2].good + 
+					" bad: " + game_objects[spaceshipID_AI2].bad + 
+					" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 90);	
+
+					drawText(context, "AI", game_objects[spaceshipID_AI1].x, game_objects[spaceshipID_AI1].y-40);
+					drawText(context, "HUMAN", game_objects[spaceshipID_AI2].x, game_objects[spaceshipID_AI2].y-40);
+
+				} // debug mode end
+
+			} // loop_game4 end
 			
 			function generatePoint(){
 				

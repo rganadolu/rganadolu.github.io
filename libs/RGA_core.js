@@ -189,7 +189,7 @@ GameObject.prototype = {
 		this.angle %= 360;
 		var _angle = -this.angle * Math.PI / 180; // clockwise radian angle
 
-		if(this.type != "spaceship"){
+		if(this.type != "spaceshipFree"){
 			this.vx = Math.cos(_angle) * this.speed;
 			this.vy = Math.sin(_angle) * this.speed;
 		}else{
@@ -283,7 +283,7 @@ GameObject.prototype = {
 
 				if(s == 0){
 					arr = [d / this.rad, 1, 1, vx, vy];
-					color = "blue";
+					color = "indigo";
 				}else if(s == 1){
 					arr = [1, d / this.rad, 1, vx, vy];
 					color = "red";
@@ -299,7 +299,7 @@ GameObject.prototype = {
 
 			if(s == 0) this.score -= (radius / d) / 1000; // do not stay near the walls
 
-			if(draw) drawLine(context, this.curr_point, getPoint(this.x, this.y, d, i), color, 2);
+			if(draw) drawLine(context, getPoint(this.x, this.y, this.radius+10, i), getPoint(this.x, this.y, d, i), color, 3);
 		}
 
 		//this.input.push(this.angle / 360);
@@ -406,7 +406,7 @@ CollisionArea.prototype = {
 				if( object.border_collision == true && 
 					(object.y - object.radius <= this.rectangle.y || object.y + object.radius >= this.rectangle.height)){
 				 	object.jump_previous();
-				 	// object.angle += 2 * getHorizontalAngle(object.angle);
+				 	object.angle += 2 * getHorizontalAngle(object.angle);
 				 	object.vy = 0; object.vx = 0;
 				 	// object.score -= 5.0;
 				}
@@ -418,7 +418,7 @@ CollisionArea.prototype = {
 				if( object.border_collision == true && 
 					(object.x - object.radius <= this.rectangle.x || object.x + object.radius  >= this.rectangle.width)){
 					object.jump_previous();
-					// object.angle += 2 * getVerticalAngle(object.angle);
+					object.angle += 2 * getVerticalAngle(object.angle);
 					object.vx = 0; object.vy = 0;
 					// object.score -= 5.0;
 				}	
