@@ -565,6 +565,7 @@
 				        var data = JSON.parse(this.responseText);
 					    agent1.fromJSON(data); 
 					    agent1.epsilon = 0.05;
+					    agent1.alpha = 0;
 				    }
 				};
 				xmlhttp.send(null);
@@ -874,7 +875,7 @@
 					"BETTER AI: " +
 					" good: " + game_objects[spaceshipID_AI2].good + 
 					" bad: " + game_objects[spaceshipID_AI2].bad + 
-					" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 120);	
+					" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI2].bad).toFixed(2), 20, 120);	
 
 					drawText(context, "WORSE", game_objects[spaceshipID_AI1].x, game_objects[spaceshipID_AI1].y-40);
 					drawText(context, "BETTER", game_objects[spaceshipID_AI2].x, game_objects[spaceshipID_AI2].y-40);	
@@ -944,6 +945,7 @@
 				        var data = JSON.parse(this.responseText);
 					    agent1.fromJSON(data); 
 					    agent1.epsilon = 0.05;
+					    agent1.alpha = 0;
 				    }
 				};
 				xmlhttp.send(null);	
@@ -1078,7 +1080,7 @@
 					"HUMAN: " + 
 					" good: " + game_objects[spaceshipID_AI2].good + 
 					" bad: " + game_objects[spaceshipID_AI2].bad + 
-					" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI1].bad).toFixed(2), 20, 90);	
+					" ratio: " + (game_objects[spaceshipID_AI2].good / game_objects[spaceshipID_AI2].bad).toFixed(2), 20, 90);	
 
 					drawText(context, "AI", game_objects[spaceshipID_AI1].x, game_objects[spaceshipID_AI1].y-40);
 					drawText(context, "HUMAN", game_objects[spaceshipID_AI2].x, game_objects[spaceshipID_AI2].y-40);
