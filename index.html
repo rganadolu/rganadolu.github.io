@@ -739,8 +739,8 @@
 				xmlhttp.onreadystatechange = function() {
 				    if (this.readyState == 4 && this.status == 200) {
 				        var data = JSON.parse(this.responseText);
-					    agent2.fromJSON(data); 
-					    agent2.epsilon = 0.05;
+					    agent1.fromJSON(data); 
+					    agent1.epsilon = 0.05;
 				    }
 				};
 				xmlhttp.send(null);
